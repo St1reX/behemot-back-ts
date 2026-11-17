@@ -1,0 +1,10 @@
+Soft delete and unique constraints
+
+Current CRUD services validate uniqueness only among active records (`deletedAt: null`).
+To avoid database-level conflicts with soft-deleted rows, plain Prisma `@unique` and `@@unique`
+constraints were removed from the recently added domain CRUD models.
+
+This should be revisited before the data model stabilizes:
+- decide which values must be reusable after soft delete,
+- replace plain unique constraints with partial unique indexes where needed,
+- review the remaining soft-delete models that still use `@unique` or `@@unique`.

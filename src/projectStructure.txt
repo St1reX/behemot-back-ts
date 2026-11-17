@@ -1,0 +1,83 @@
+src/
+|-- assets/
+|   |-- fonts/
+|   `-- pdf-templates/
+|
+|-- cli/
+|   |-- copyStaticAssets.ts
+|   |-- rolePrivilegesSeedConfig.ts
+|   `-- seedRolesPrivileges.ts
+|
+|-- config/
+|   |-- env.ts
+|   |-- database.ts
+|   |-- passport.ts
+|   `-- redis.ts
+|
+|-- errors/
+|   |-- AppError.ts
+|   `-- errorHandler.ts
+|
+|-- infrastructure/
+|   `-- audit/
+|       `-- auditLogger.ts
+|
+|-- integrations/
+|   |-- allegro/
+|   |   |-- allegro.service.ts
+|   |   |-- allegro.dto.ts
+|   |   `-- allegro.mapper.ts
+|   `-- presta/
+|       |-- presta.service.ts
+|       |-- presta.dto.ts
+|       `-- presta.mapper.ts
+|
+|-- middlewares/
+|   |-- requireAuth.ts
+|   |-- requireRole.ts
+|   |-- requirePrivilege.ts
+|   |-- rateLimiter.ts
+|   |-- requestId.ts
+|   `-- sessionMiddleware.ts
+|
+|-- modules/
+|   |-- health/
+|   |   `-- routes.ts
+|   |-- product/
+|   |   |-- schemas/
+|   |   |   |-- createProduct.schema.ts
+|   |   |   `-- updateProduct.schema.ts
+|   |   |-- dtos/
+|   |   |   |-- createProduct.dto.ts
+|   |   |   `-- updateProduct.dto.ts
+|   |   |-- mappers/
+|   |   |-- product.controller.ts
+|   |   |-- product.repository.ts
+|   |   |-- product.routes.ts
+|   |   `-- product.service.ts
+|   `-- order/
+|       |-- schemas/
+|       |-- dtos/
+|       |-- mappers/
+|       |-- order.controller.ts
+|       |-- order.repository.ts
+|       |-- order.routes.ts
+|       `-- order.service.ts
+|
+|-- shared/
+|   |-- constants/
+|   |   |-- actions.ts
+|   |   |-- entities.ts
+|   |   |-- privileges.ts
+|   |   `-- roles.ts
+|   `-- utils/
+|       `-- stringUtils.ts
+|
+|-- swagger/
+|   `-- swagger_output.json
+|
+|-- utils/
+|   `-- loadRoutes.ts
+|
+|-- app.ts
+`-- server.ts

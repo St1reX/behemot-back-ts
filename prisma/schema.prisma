@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EntityName {
+  USER
+  REGISTRATION_TOKEN
+  ROLE
+  DEPARTMENT
+  WAREHOUSE
+  CONTRACTOR
+  PRODUCER
+  CAR_BRAND
+  CAR_MODEL
+  CAR_GENERATION
+  PRODUCT_LISTING_TEMPLATE
+  PRODUCT
+  PRODUCT_FITMENT
+  PRODUCT_CROSS_REFERENCE
+}
+
+enum OperationStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+enum ProductSide {
+  LEFT
+  RIGHT
+  BOTH
+  NONE
+}
+
+enum IntegrationChannel {
+  ALLEGRO
+  BASELINKER
+  PRESTASHOP
+}
+
+enum IntegrationSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model Integration {
+  id String @id @default(uuid())
+
+  name              String
+  channel           IntegrationChannel
+  externalAccountId String?
+
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  accessTokenExpiresAt  DateTime
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([channel])
+  @@index([channel, externalAccountId])
+}
+
+model Role {
+  id   String @id @default(uuid())
+  name String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users      User[]
+  privileges Privilege[] @relation("RoleToPrivilege")
+}
+
+model Privilege {
+  id   String @id @default(uuid())
+  name String @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  roles Role[] @relation("RoleToPrivilege")
+}
+
+model Log {
+  id              String          @id @default(uuid())
+  userId          String
+  entityName      String
+  entityId        String
+  action          String
+  operationStatus OperationStatus
+  comment         String?
+  dataBefore      Json?
+  dataAfter       Json?
+  sourceIp        String?
+
+  isSuspicious     Boolean @default(false)
+  suspiciousReason String?
+
+  requestId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityName, entityId])
+  @@index([isSuspicious])
+}
+
+model User {
+  id                String  @id @default(uuid())
+  username          String  @unique
+  email             String  @unique
+  passwordHash      String
+  profilePictureUrl String?
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  registrationToken RegistrationToken?
+}
+
+model RegistrationToken {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  token    String  @unique
+  accepted Boolean @default(false)
+
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+}
+
+model CarBrand {
+  id   String @id @default(uuid())
+  name String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  models CarModel[]
+}
+
+model CarModel {
+  id String @id @default(uuid())
+
+  name String
+
+  carBrand   CarBrand @relation(fields: [carBrandId], references: [id])
+  carBrandId String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  carGenerations CarGeneration[]
+
+}
+
+model CarGeneration {
+  id String @id @default(uuid())
+
+  startProduction Int
+  endProduction   Int?
+
+  carModelId String
+  carModel   CarModel @relation(fields: [carModelId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  fitments ProductFitment[]
+
+}
+
+model Department {
+  id String @id @default(uuid())
+
+  name     String
+  shortcut String @db.VarChar(2)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  productListingTemplates ProductListingTemplate[]
+  products                Product[]
+  users                   User[]
+}
+
+model ProductListingTemplate {
+  id String @id @default(uuid())
+
+  name String
+
+  titleTemplate       String
+  summaryTemplate     String
+  descriptionTemplate String
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products Product[]
+}
+
+model Warehouse {
+  id String @id @default(uuid())
+
+  name String
+
+  postalCode     String
+  city           String
+  street         String
+  buildingNumber String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products Product[]
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  imagesUrls            String[]
+  descriptionImagesUrls String[]
+  price                 Decimal  @db.Decimal(6, 2)
+  quantity              Int
+
+  customName   String?
+  customSummary String?
+  customDescription String?
+  internalNote String?
+  side         ProductSide @default(NONE)
+
+  weight Decimal  @db.Decimal(6, 2)
+  length Decimal  @db.Decimal(6, 2)
+  width  Decimal  @db.Decimal(6, 2)
+  height Decimal? @db.Decimal(6, 2)
+
+  sku String
+  ean String?
+  oem String[]
+
+  warehouseLocation String
+  warehouseId       String
+  warehouse         Warehouse @relation(fields: [warehouseId], references: [id])
+
+  listingTemplateId String
+  listingTemplate   ProductListingTemplate @relation(fields: [listingTemplateId], references: [id])
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  producerId String
+  producer   Producer @relation(fields: [producerId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  productFitments        ProductFitment[]
+  productCrossReferences ProductCrossReference[]
+  externalListings       ProductExternalListing[]
+}
+
+model ProductFitment {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  carGenerationId String
+  carGeneration   CarGeneration @relation(fields: [carGenerationId], references: [id])
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  externalListings ProductExternalListingFitment[]
+}
+
+model ProductExternalListing {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  channel    IntegrationChannel
+  externalId String?
+
+  syncStatus  IntegrationSyncStatus @default(PENDING)
+  lastSyncedAt DateTime?
+  lastError    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  fitments ProductExternalListingFitment[]
+
+  @@index([productId])
+  @@index([channel, externalId])
+  @@index([syncStatus])
+}
+
+model ProductExternalListingFitment {
+  id String @id @default(uuid())
+
+  externalListingId String
+  externalListing   ProductExternalListing @relation(fields: [externalListingId], references: [id])
+
+  productFitmentId String
+  productFitment   ProductFitment @relation(fields: [productFitmentId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([externalListingId])
+  @@index([productFitmentId])
+}
+
+model ProductCrossReference {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  contractorId String
+  contractor   Contractor @relation(fields: [contractorId], references: [id])
+
+  contractorSku String
+  contractorEan String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+}
+
+model Contractor {
+  id String @id @default(uuid())
+
+  name String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  productCrossReferences ProductCrossReference[]
+}
+
+model Producer {
+  id String @id @default(uuid())
+
+  name String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products Product[]
+}

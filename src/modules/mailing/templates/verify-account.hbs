@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pl">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Potwierdzenie rejestracji | Behemot</title>
+   </head>
+   <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, sans-serif; color: #1e293b;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9;">
+         <tr>
+            <td align="center" style="padding: 48px 16px;">
+               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px;">
+                  <tr>
+                     <td style="padding: 24px 32px; background-color: #0f172a; border-radius: 18px 18px 0 0;">
+                        <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: bold; letter-spacing: 0.4px;">
+                           Behemot
+                        </p>
+                        <p style="margin: 6px 0 0; color: #94a3b8; font-size: 13px;">
+                           Potwierdzenie adresu e-mail
+                        </p>
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="padding: 40px 32px; background-color: #ffffff;">
+                        <p style="margin: 0 0 12px; color: #64748b; font-size: 14px;">
+                           Cześć {{username}},
+                        </p>
+                        <h1 style="margin: 0 0 16px; color: #0f172a; font-size: 28px; line-height: 1.25;">
+                           Twoje konto jest prawie gotowe
+                        </h1>
+                        <p style="margin: 0 0 28px; color: #475569; font-size: 16px; line-height: 1.65;">
+                           Dziękujemy za rejestrację. Potwierdź swój adres e-mail, aby aktywować konto i rozpocząć korzystanie z aplikacji.
+                        </p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                           <tr>
+                              <td style="border-radius: 10px; background-color: #2563eb;">
+                                 <a href="{{confirmationLink}}" target="_blank" style="display: inline-block; padding: 15px 24px; color: #ffffff; font-size: 15px; font-weight: bold; text-decoration: none;">
+                                    Aktywuj konto
+                                 </a>
+                              </td>
+                           </tr>
+                        </table>
+                        <p style="margin: 30px 0 8px; color: #64748b; font-size: 13px; line-height: 1.6;">
+                           Jeśli przycisk nie działa, skopiuj poniższy adres i wklej go do przeglądarki:
+                        </p>
+                        <p style="margin: 0; word-break: break-all; font-size: 13px; line-height: 1.6;">
+                           <a href="{{confirmationLink}}" target="_blank" style="color: #2563eb; text-decoration: underline;">
+                              {{confirmationLink}}
+                           </a>
+                        </p>
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="padding: 22px 32px; background-color: #e2e8f0; border-radius: 0 0 18px 18px;">
+                        <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.6;">
+                           Jeśli to nie Ty zakładałeś konto, możesz zignorować tę wiadomość.
+                        </p>
+                     </td>
+                  </tr>
+               </table>
+            </td>
+         </tr>
+      </table>
+   </body>
+</html>
