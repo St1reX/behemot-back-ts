@@ -6,6 +6,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "concurrently --kill-others-on-fail \"npm:dev:api\" \"npm:dev:worker\"",
+        "prisma:full": "prisma generate && prisma migrate deploy",
         "dev:api": "nodemon",
         "dev:worker": "nodemon --watch src --ext ts --exec \"ts-node --files src/worker.ts\"",
         "build": "npm run swagger-generate && tsc && node dist/src/cli/copyStaticAssets.js",
