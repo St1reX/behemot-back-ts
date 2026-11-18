@@ -26,7 +26,7 @@ export class RoleService {
         const role = await RoleRepository.findById(roleId);
 
         if (!role) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Role not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono roli.');
         }
 
         return role;
@@ -58,7 +58,7 @@ export class RoleService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Role cannot be deleted because it is assigned to a user',
+                'Nie można usunąć roli przypisanej do użytkowników.',
             );
         }
 
@@ -152,7 +152,7 @@ export class RoleService {
             throw new AppError(
                 ErrorNames.RESOURCE_NOT_FOUND,
                 404,
-                'One or more privileges were not found',
+                'Nie znaleziono co najmniej jednego z wybranych uprawnień.',
             );
         }
 
@@ -163,7 +163,7 @@ export class RoleService {
         const existingRole = await RoleRepository.findByName(roleName);
 
         if (existingRole) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Role name is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Rola o tej nazwie już istnieje.');
         }
     }
 
@@ -171,20 +171,20 @@ export class RoleService {
         const userId = getRequestContext()?.userId;
 
         if (!userId) {
-            throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated');
+            throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Zaloguj się, aby kontynuować.');
         }
 
         const user = await RoleRepository.findActiveUserRole(userId);
 
         if (!user) {
-            throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated');
+            throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Zaloguj się, aby kontynuować.');
         }
 
         if (user.roleId === roleId) {
             throw new AppError(
                 ErrorNames.FORBIDDEN,
                 403,
-                'You cannot modify privileges assigned to your own role',
+                'Nie możesz zmieniać uprawnień przypisanych do własnej roli.',
             );
         }
     }

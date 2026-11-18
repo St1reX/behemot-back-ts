@@ -29,7 +29,7 @@ export class ProductListingTemplateService {
             throw new AppError(
                 ErrorNames.RESOURCE_NOT_FOUND,
                 404,
-                'Product listing template not found',
+                'Nie znaleziono szablonu oferty.',
             );
         }
 
@@ -104,7 +104,7 @@ export class ProductListingTemplateService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Product listing template cannot be deleted because it is assigned to a product',
+                'Nie można usunąć szablonu oferty przypisanego do produktów.',
             );
         }
 
@@ -128,7 +128,7 @@ export class ProductListingTemplateService {
         const department = await ProductListingTemplateRepository.findActiveDepartment(departmentId);
 
         if (!department) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Department not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono działu.');
         }
     }
 
@@ -145,7 +145,7 @@ export class ProductListingTemplateService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Product listing template name is already in use',
+                'Szablon oferty o tej nazwie już istnieje.',
             );
         }
     }

@@ -16,7 +16,7 @@ export class WarehouseService {
         const warehouse = await WarehouseRepository.findById(warehouseId);
 
         if (!warehouse) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Warehouse not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono magazynu.');
         }
 
         return warehouse;
@@ -70,7 +70,7 @@ export class WarehouseService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Warehouse cannot be deleted because it is assigned to a product',
+                'Nie można usunąć magazynu przypisanego do produktów.',
             );
         }
 
@@ -97,7 +97,7 @@ export class WarehouseService {
         const existingWarehouse = await WarehouseRepository.findByName(warehouseName, excludedWarehouseId);
 
         if (existingWarehouse) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Warehouse name is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Magazyn o tej nazwie już istnieje.');
         }
     }
 }

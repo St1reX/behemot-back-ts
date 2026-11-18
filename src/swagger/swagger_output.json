@@ -857,150 +857,74 @@
       "ErrorResponse": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
+          "error": {
             "type": "object",
             "properties": {
-              "error": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "message": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "message"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
+              "message": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
               }
-            }
-          },
-          "required": {
-            "type": "array",
-            "example": [
-              "error"
-            ],
-            "items": {
-              "type": "string"
-            }
+            },
+            "required": [
+              "name",
+              "message"
+            ]
           }
-        }
+        },
+        "required": [
+          "error"
+        ]
       },
       "ValidationErrorResponse": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
+          "error": {
             "type": "object",
             "properties": {
-              "error": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "array"
-                  },
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "example": "object"
-                      },
-                      "properties": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              }
-                            }
-                          },
-                          "message": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              }
-                            }
-                          },
-                          "code": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "required": {
-                        "type": "array",
-                        "example": [
-                          "path",
-                          "message",
-                          "code"
-                        ],
-                        "items": {
-                          "type": "string"
-                        }
-                      }
+              "name": {
+                "type": "string",
+                "enum": [
+                  "ValidationError"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "path",
+                    "message",
+                    "code"
+                  ]
                 }
               }
-            }
-          },
-          "required": {
-            "type": "array",
-            "example": [
-              "error"
-            ],
-            "items": {
-              "type": "string"
-            }
+            },
+            "required": [
+              "name",
+              "message",
+              "issues"
+            ]
           }
-        }
+        },
+        "required": [
+          "error"
+        ]
       },
       "AuthenticatedUser": {
         "type": "object",

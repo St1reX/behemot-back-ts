@@ -41,7 +41,7 @@ export class AuthService {
         const existingUser = await AuthRepository.findByEmailOrUsername(userData.email, userData.username);
 
         if (existingUser) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Email or username is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Adres e-mail lub nazwa użytkownika są już zajęte.');
         }
 
         const defaultRole = await AuthRepository.findRoleByName(ROLES.USER);
@@ -122,7 +122,7 @@ export class AuthService {
             throw new AppError(
                 ErrorNames.TOO_MANY_REQUESTS,
                 429,
-                'Registration email can be resent once every 10 minutes',
+                'Wiadomość aktywacyjną można wysłać ponownie raz na 10 minut.',
             );
         }
 
@@ -156,11 +156,11 @@ export class AuthService {
         const registrationTokenData = await AuthRepository.findRegistrationToken(userData.token);
 
         if (!registrationTokenData) {
-            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Invalid registration token');
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Link aktywacyjny jest nieprawidłowy.');
         }
 
         if (registrationTokenData.accepted || registrationTokenData.expiresAt < new Date()) {
-            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Registration token is no longer valid');
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Link aktywacyjny wygasł lub został już wykorzystany. Jeśli konto zostało aktywowane, możesz się zalogować.');
         }
 
         const acceptedAt = new Date();
@@ -172,7 +172,7 @@ export class AuthService {
         );
 
         if (!verificationResult) {
-            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Registration token is no longer valid');
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Link aktywacyjny wygasł lub został już wykorzystany. Jeśli konto zostało aktywowane, możesz się zalogować.');
         }
 
         const [updatedRegistrationToken, updatedUser] = verificationResult;

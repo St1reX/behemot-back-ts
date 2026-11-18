@@ -16,7 +16,7 @@ export class ProducerService {
         const producer = await ProducerRepository.findById(producerId);
 
         if (!producer) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Producer not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono producenta.');
         }
 
         return producer;
@@ -70,7 +70,7 @@ export class ProducerService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Producer cannot be deleted because it is assigned to a product',
+                'Nie można usunąć producenta przypisanego do produktów.',
             );
         }
 
@@ -97,7 +97,7 @@ export class ProducerService {
         const existingProducer = await ProducerRepository.findByName(producerName, excludedProducerId);
 
         if (existingProducer) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Producer name is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Producent o tej nazwie już istnieje.');
         }
     }
 }

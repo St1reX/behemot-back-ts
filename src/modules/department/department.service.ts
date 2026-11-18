@@ -16,7 +16,7 @@ export class DepartmentService {
         const department = await DepartmentRepository.findById(departmentId);
 
         if (!department) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Department not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono działu.');
         }
 
         return department;
@@ -77,7 +77,7 @@ export class DepartmentService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Department cannot be deleted because it is assigned to another resource',
+                'Nie można usunąć działu powiązanego z innymi danymi.',
             );
         }
 
@@ -110,7 +110,7 @@ export class DepartmentService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Department name or shortcut is already in use',
+                'Nazwa lub skrót działu są już zajęte.',
             );
         }
     }

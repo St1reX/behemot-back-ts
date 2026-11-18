@@ -1,7 +1,8 @@
+import './config/zod';
 import express from 'express';
 import cors from 'cors';
 import { appWinston } from './config/logger/appWinston';
-import { ErrorHandler, errorHandler } from './errors/errorHandler';
+import { notFound, errorHandler } from './errors/errorHandler';
 import passport from './config/passport';
 import { sessionMiddleware } from './middlewares/sessionMiddleware';
 import { limiter } from './middlewares/rateLimiter';
@@ -23,9 +24,6 @@ app.use(metricsMiddleware);
 // Request identification middleware - adds unique ID to each request
 app.use(requestId);
 
-// Rate limiting middleware - prevents abuse by limiting request frequency
-app.use(limiter);
-
 // Trust proxy configuration for production environments
 if (!isDevelopment) {
     app.set('trust proxy', 1);
@@ -41,6 +39,9 @@ app.use(
         optionsSuccessStatus: 200,
     }),
 );
+
+// Rate limiting follows CORS so browsers can read error responses.
+app.use(limiter);
 
 // Security middleware - adds various HTTP headers for security
 app.use(helmetConfig);
@@ -69,7 +70,7 @@ export async function configureApp() {
     appWinston.info(`All routes loaded`);
 
     // Error handling middleware - handles 404 and other errors
-    app.use(ErrorHandler.notFound);
+    app.use(notFound);
     app.use(errorHandler);
 
     return app;

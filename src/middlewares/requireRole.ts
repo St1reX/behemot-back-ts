@@ -9,13 +9,13 @@ export function requireRole(allowedRoles: string | string[]) {
 
     if (!user) {
       return next(
-        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated')
+        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Zaloguj się, aby kontynuować.')
       );
     }
 
     const userRole = user.role?.name;
     if (!userRole || !roles.includes(userRole)) {
-      return next(new AppError(ErrorNames.FORBIDDEN, 403, 'Access denied'));
+      return next(new AppError(ErrorNames.FORBIDDEN, 403, 'Nie masz uprawnień do wykonania tej operacji.'));
     }
 
     next();

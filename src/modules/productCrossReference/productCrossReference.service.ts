@@ -27,7 +27,7 @@ export class ProductCrossReferenceService {
             throw new AppError(
                 ErrorNames.RESOURCE_NOT_FOUND,
                 404,
-                'Product cross reference not found',
+                'Nie znaleziono powiązania numeru referencyjnego produktu.',
             );
         }
 
@@ -119,11 +119,11 @@ export class ProductCrossReferenceService {
         ]);
 
         if (!product) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Product not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono produktu.');
         }
 
         if (!contractor) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Contractor not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono kontrahenta.');
         }
     }
 
@@ -142,7 +142,7 @@ export class ProductCrossReferenceService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Product cross reference data is already in use',
+                'Takie powiązanie numeru referencyjnego produktu już istnieje.',
             );
         }
     }

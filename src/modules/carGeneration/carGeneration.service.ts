@@ -30,7 +30,7 @@ export class CarGenerationService {
         const carGeneration = await CarGenerationRepository.findById(carGenerationId);
 
         if (!carGeneration) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car generation not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono generacji pojazdu.');
         }
 
         return carGeneration;
@@ -92,7 +92,7 @@ export class CarGenerationService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Car generation cannot be deleted because it is assigned to a product fitment',
+                'Nie można usunąć generacji przypisanej do produktów.',
             );
         }
 
@@ -116,7 +116,7 @@ export class CarGenerationService {
         const carModel = await CarGenerationRepository.findActiveCarModel(carModelId);
 
         if (!carModel) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car model not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono modelu pojazdu.');
         }
     }
 
@@ -133,7 +133,7 @@ export class CarGenerationService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Car generation years are already in use for this car model',
+                'Generacja o tych latach produkcji już istnieje w tym modelu.',
             );
         }
     }

@@ -11,7 +11,7 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
 
     if (!user) {
       return next(
-        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated')
+        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Zaloguj się, aby kontynuować.')
       );
     }
 
@@ -22,7 +22,7 @@ export function requirePrivilege(requiredPrivileges: string | string[]) {
 
     if (!hasPrivilege) {
       return next(
-        new AppError(ErrorNames.FORBIDDEN, 403, 'Insufficient privileges')
+        new AppError(ErrorNames.FORBIDDEN, 403, 'Nie masz uprawnień do wykonania tej operacji.')
       );
     }
 

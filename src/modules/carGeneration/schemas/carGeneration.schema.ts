@@ -10,8 +10,10 @@ export const CarModelIdParamSchema = z.object({
 
 export const CreateCarGenerationSchema = z
     .object({
-        startProduction: z.number().int().min(1886),
-        endProduction: z.number().int().min(1886).nullable(),
+        startProduction: z.number().int('Podaj pełny rok początku produkcji.')
+            .min(1886, 'Początek produkcji nie może być wcześniejszy niż 1886.'),
+        endProduction: z.number().int('Podaj pełny rok końca produkcji.')
+            .min(1886, 'Koniec produkcji nie może być wcześniejszy niż 1886.').nullable(),
         carModelId: z.string().uuid(),
     })
     .refine(
@@ -19,7 +21,7 @@ export const CreateCarGenerationSchema = z
             carGenerationData.endProduction === null ||
             carGenerationData.endProduction >= carGenerationData.startProduction,
         {
-            message: 'End production year cannot be earlier than start production year',
+            message: 'Koniec produkcji nie może być wcześniejszy niż początek produkcji.',
             path: ['endProduction'],
         },
     );

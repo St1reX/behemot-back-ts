@@ -40,13 +40,13 @@ passport.use(
 
                 if (!user || !(await isPasswordValid(password, user.passwordHash))) {
                     return done(
-                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid username or password'),
+                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Nieprawidłowa nazwa użytkownika lub hasło.'),
                     );
                 }
 
                 if (!user.isActive || user.role.deletedAt) {
                     return done(
-                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Account is not active'),
+                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Konto jest nieaktywne lub nie ma aktywnej roli. Skontaktuj się z administratorem.'),
                     );
                 }
 

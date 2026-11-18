@@ -20,7 +20,7 @@ export class ProductService {
         const product = await ProductRepository.findById(productId);
 
         if (!product) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Product not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono produktu.');
         }
 
         return mapProductResponse(product);
@@ -102,23 +102,23 @@ export class ProductService {
         ]);
 
         if (!warehouse) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Warehouse not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono magazynu.');
         }
 
         if (!department) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Department not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono działu.');
         }
 
         if (!listingTemplate) {
             throw new AppError(
                 ErrorNames.RESOURCE_NOT_FOUND,
                 404,
-                'Product listing template not found for selected department',
+                'Nie znaleziono szablonu oferty dla wybranego działu.',
             );
         }
 
         if (!producer) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Producer not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono producenta.');
         }
     }
 
@@ -129,7 +129,7 @@ export class ProductService {
         const existingProduct = await ProductRepository.findConflictingProduct(productData, excludedProductId);
 
         if (existingProduct) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Product SKU or EAN is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Numer SKU lub EAN produktu jest już zajęty.');
         }
     }
 }

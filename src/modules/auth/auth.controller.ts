@@ -21,7 +21,7 @@ import { sessionCookieName, sessionCookieOptions } from '../../middlewares/sessi
 export class AuthController {
     static getCurrentUser(req: Request, res: Response<CurrentUserResponse>, next: NextFunction) {
         if (!req.user) {
-            next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated'));
+            next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Zaloguj się, aby kontynuować.'));
             return;
         }
 
@@ -43,7 +43,7 @@ export class AuthController {
             }
 
             if (!user) {
-                next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid username or password'));
+                next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Nieprawidłowa nazwa użytkownika lub hasło.'));
                 return;
             }
 

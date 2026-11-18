@@ -16,7 +16,7 @@ export class ContractorService {
         const contractor = await ContractorRepository.findById(contractorId);
 
         if (!contractor) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Contractor not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono kontrahenta.');
         }
 
         return contractor;
@@ -74,7 +74,7 @@ export class ContractorService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Contractor cannot be deleted because it is assigned to a product cross reference',
+                'Nie można usunąć kontrahenta powiązanego z numerami referencyjnymi produktów.',
             );
         }
 
@@ -101,7 +101,7 @@ export class ContractorService {
         const existingContractor = await ContractorRepository.findByName(contractorName, excludedContractorId);
 
         if (existingContractor) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Contractor name is already in use');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Kontrahent o tej nazwie już istnieje.');
         }
     }
 }

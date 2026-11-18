@@ -5,7 +5,7 @@ export const CarBrandIdSchema = z.object({
 });
 
 export const CreateCarBrandSchema = z.object({
-    name: z.string().min(1).max(100),
+    name: z.string().trim().min(1, 'Podaj nazwę marki.').max(100, 'Nazwa marki może mieć najwyżej 100 znaków.'),
 });
 
 export type CreateCarBrandDTO = z.infer<typeof CreateCarBrandSchema>;

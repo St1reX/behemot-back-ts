@@ -22,7 +22,7 @@ export class ProductFitmentService {
         const productFitment = await ProductFitmentRepository.findById(productFitmentId);
 
         if (!productFitment) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Product fitment not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono dopasowania produktu do pojazdu.');
         }
 
         return productFitment;
@@ -83,7 +83,7 @@ export class ProductFitmentService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Primary product fitment cannot be deleted',
+                'Nie można usunąć głównego dopasowania produktu do pojazdu.',
             );
         }
 
@@ -112,11 +112,11 @@ export class ProductFitmentService {
         ]);
 
         if (!product) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Product not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono produktu.');
         }
 
         if (!carGeneration) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car generation not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono generacji pojazdu.');
         }
     }
 
@@ -137,14 +137,14 @@ export class ProductFitmentService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Product fitment already exists for selected car generation',
+                'Produkt jest już przypisany do wybranej generacji pojazdu.',
             );
         }
 
         throw new AppError(
             ErrorNames.CONFLICT,
             409,
-            'Product already has a primary fitment',
+            'Produkt ma już główne dopasowanie do pojazdu.',
         );
     }
 }

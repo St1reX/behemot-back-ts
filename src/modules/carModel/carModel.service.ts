@@ -22,7 +22,7 @@ export class CarModelService {
         const carModel = await CarModelRepository.findById(carModelId);
 
         if (!carModel) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car model not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono modelu pojazdu.');
         }
 
         return carModel;
@@ -77,7 +77,7 @@ export class CarModelService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Car model cannot be deleted because it is assigned to a car generation',
+                'Nie można usunąć modelu, który ma generacje. Najpierw usuń jego generacje.',
             );
         }
 
@@ -101,7 +101,7 @@ export class CarModelService {
         const carBrand = await CarModelRepository.findActiveCarBrand(carBrandId);
 
         if (!carBrand) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car brand not found');
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono marki pojazdu.');
         }
     }
 
@@ -118,7 +118,7 @@ export class CarModelService {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Car model name is already in use for this car brand',
+                'Model o tej nazwie już istnieje w tej marce.',
             );
         }
     }
