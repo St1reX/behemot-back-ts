@@ -33,4 +33,11 @@ export const isDevelopment = env.NODE_ENV === 'development';
 
 export const apiUrl = isProduction ? env.PROD_API_URL : env.DEV_API_URL;
 export const apiPort = isProduction ? env.PROD_API_PORT : env.DEV_API_PORT;
-export const frontendUrl = isProduction ? env.PROD_FRONTEND_URL : env.DEV_FRONTEND_URL;
+const configuredFrontendUrl = isProduction ? env.PROD_FRONTEND_URL : env.DEV_FRONTEND_URL;
+
+if (!configuredFrontendUrl) {
+    const variableName = isProduction ? 'PROD_FRONTEND_URL' : 'DEV_FRONTEND_URL';
+    throw new Error(`Invalid environment variables: ${variableName} is required`);
+}
+
+export const frontendUrl = configuredFrontendUrl;

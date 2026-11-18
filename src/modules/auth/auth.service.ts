@@ -8,7 +8,7 @@ import {
     ResendRegistrationMailDTO,
     VerifyAccountDTO,
 } from './schemas/auth.schema';
-import { apiPort, apiUrl } from '../../config/env';
+import { frontendUrl } from '../../config/env';
 import { MailingService } from '../mailing/mailing.service';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ENTITIES } from '../../shared/constants/entities';
@@ -29,7 +29,7 @@ function getRegistrationTokenExpirationDate() {
 }
 
 function createConfirmationLink(registrationToken: string) {
-    const confirmationUrl = new URL('/auth/verify-account', `${apiUrl}:${apiPort}`);
+    const confirmationUrl = new URL('verify-account', `${frontendUrl.replace(/\/+$/, '')}/`);
     confirmationUrl.searchParams.set('token', registrationToken);
 
     return confirmationUrl.toString();

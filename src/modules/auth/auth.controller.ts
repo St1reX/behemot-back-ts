@@ -121,6 +121,7 @@ export class AuthController {
 
             const result = await AuthService.verifyAccount(validatedData);
 
+            res.setHeader('Cache-Control', 'no-store');
             res.status(200).json(result);
         } catch (error) {
             next(error);
