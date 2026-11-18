@@ -60,14 +60,6 @@ app.use(attachUserToRequestContext);
 // Traffic logging middleware - logs all incoming requests
 app.use(trafficLogger);
 
-if (isDevelopment) {
-    app.use((req: any, res: any, next: any) => {
-        console.log('[SESSION DEBUG]', req.session);
-        console.log('[SESSION USER]', req.user);
-        next();
-    });
-}
-
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
 app.get('/metrics', metricsHandler);
 
