@@ -7,6 +7,7 @@ import { apiPort, apiUrl } from './config/env';
 import { redisClient } from './config/redis';
 import { closeSocketEventEmitter, createSocketServer } from './config/socket';
 import { setupGracefulShutdown } from './shared/utils/gracefulShutdown';
+import { closeBolmaDatabasePool } from './modules/integrations/bolma/config/database';
 
 async function startServer() {
     await configureApp();
@@ -27,6 +28,7 @@ async function startServer() {
             { name: 'BullMQ queues', close: closeBullmqQueues },
             { name: 'session Redis connection', close: () => redisClient.quit() },
             { name: 'Prisma connection', close: () => prisma.$disconnect() },
+            { name: 'Bolma MySQL pool', close: closeBolmaDatabasePool },
         ],
     });
 }

@@ -18,6 +18,16 @@ const envSchema = z.object({
     SMTP_PORT: z.coerce.number().int().positive().max(65535),
     SMTP_LOGIN: z.string().min(1),
     SMTP_PASSWORD: z.string().min(1),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_HOST: z.string().min(1),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_PORT: z.coerce.number().int().positive().max(65535).default(3306),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_DATABASE: z.string().min(1),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_USERNAME: z.string().min(1),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_PASSWORD: z.string().min(1),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_CHARSET: z.string().min(1).default('utf8mb4'),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+    BOLMA_PRODUCTS_CATALOG_MYSQL_SSL: z.enum(['true', 'false']).default('false').transform(
+        (value) => value === 'true',
+    ),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
