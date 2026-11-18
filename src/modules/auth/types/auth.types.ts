@@ -39,9 +39,11 @@ export interface AuthenticatedUser {
     isActive: boolean;
 }
 
-export interface LoginUserResponse {
+export interface CurrentUserResponse {
     user: AuthenticatedUser;
 }
+
+export type LoginUserResponse = CurrentUserResponse;
 
 export interface LogoutUserResponse {
     message: string;

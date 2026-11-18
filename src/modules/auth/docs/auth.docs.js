@@ -8,12 +8,62 @@ module.exports = {
         email: { type: 'string', format: 'email' },
         username: { type: 'string' },
         profilePictureUrl: { type: 'string', nullable: true },
+        role: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            privileges: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  name: { type: 'string' },
+                },
+                required: ['id', 'name'],
+              },
+            },
+          },
+          required: ['id', 'name', 'privileges'],
+        },
         isActive: { type: 'boolean' },
       },
-      required: ['id', 'email', 'username', 'profilePictureUrl', 'isActive'],
+      required: ['id', 'email', 'username', 'profilePictureUrl', 'role', 'isActive'],
     },
   },
   paths: {
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Get the current user with their role and privileges',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: {
+            description: 'Authenticated user from the current session.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: { $ref: '#/components/schemas/AuthenticatedUser' },
+                  },
+                  required: ['user'],
+                },
+              },
+            },
+          },
+          401: {
+            description: 'User not authenticated.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/auth/login': {
       post: {
         tags: ['Auth'],

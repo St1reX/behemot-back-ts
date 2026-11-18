@@ -9,6 +9,7 @@ import {
 } from './schemas/auth.schema';
 import { AuthService } from './auth.service';
 import {
+    CurrentUserResponse,
     LoginUserResponse,
     LogoutUserResponse,
     RegisteredUserResponse,
@@ -18,6 +19,15 @@ import {
 import { sessionCookieName, sessionCookieOptions } from '../../middlewares/sessionMiddleware';
 
 export class AuthController {
+    static getCurrentUser(req: Request, res: Response<CurrentUserResponse>, next: NextFunction) {
+        if (!req.user) {
+            next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated'));
+            return;
+        }
+
+        res.status(200).json({ user: req.user });
+    }
+
     static loginUser(req: Request, res: Response<LoginUserResponse>, next: NextFunction) {
         try {
             LoginUserSchema.parse(req.body);

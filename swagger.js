@@ -41,6 +41,7 @@ swaggerAutogen(outputFile, endpointsFiles, doc).then(({ success }) => {
   const generatedDocs = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
 
   generatedDocs.paths = documentedPaths;
+  Object.assign(generatedDocs.components.schemas, doc.components.schemas);
 
   fs.writeFileSync(outputFile, JSON.stringify(generatedDocs, null, 2));
 });
