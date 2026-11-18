@@ -1,141 +1,79 @@
 import { scrypt, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { prisma } from './database';
+import { promisify } from 'util';
 import { AppError, ErrorNames } from '../errors/errorHandler';
+import { mapAuthenticatedUser } from '../modules/auth/mappers/authMapper';
+import { AuthRepository } from '../modules/auth/repositories/authRepository';
 
 const scryptAsync = promisify(scrypt);
 
 async function isPasswordValid(password: string, storedPasswordHash: string) {
-   const [passwordSalt, expectedPasswordHash] = storedPasswordHash.split(':');
+    const [passwordSalt, expectedPasswordHash] = storedPasswordHash.split(':');
 
-   if (!passwordSalt || !expectedPasswordHash) {
-      return false;
-   }
+    if (!passwordSalt || !expectedPasswordHash) {
+        return false;
+    }
 
-   const expectedPasswordHashBuffer = Buffer.from(expectedPasswordHash, 'hex');
-   const passwordHash = (await scryptAsync(
-      password,
-      passwordSalt,
-      expectedPasswordHashBuffer.length,
-   )) as Buffer;
+    const expectedPasswordHashBuffer = Buffer.from(expectedPasswordHash, 'hex');
+    const passwordHash = (await scryptAsync(
+        password,
+        passwordSalt,
+        expectedPasswordHashBuffer.length,
+    )) as Buffer;
 
-   return (
-      passwordHash.length === expectedPasswordHashBuffer.length &&
-      timingSafeEqual(passwordHash, expectedPasswordHashBuffer)
-   );
+    return (
+        passwordHash.length === expectedPasswordHashBuffer.length &&
+        timingSafeEqual(passwordHash, expectedPasswordHashBuffer)
+    );
 }
 
 passport.use(
-   new LocalStrategy(
-      {
-         usernameField: 'email',
-         passwordField: 'password',
-      },
-      async (email, password, done) => {
-         try {
-            const user = await prisma.user.findFirst({
-               where: {
-                  email,
-                  deletedAt: null,
-               },
-               select: {
-                  id: true,
-                  email: true,
-                  username: true,
-                  passwordHash: true,
-                  profilePictureUrl: true,
-                  role: {
-                     select: {
-                        id: true,
-                        name: true,
-                        deletedAt: true,
-                        privileges: {
-                           where: {
-                              deletedAt: null,
-                           },
-                           select: {
-                              id: true,
-                              name: true,
-                           },
-                        },
-                     },
-                  },
-                  isActive: true,
-               },
-            });
+    new LocalStrategy(
+        {
+            usernameField: 'username',
+            passwordField: 'password',
+        },
+        async (username, password, done) => {
+            try {
+                const user = await AuthRepository.findCredentialsByUsername(username);
 
-            if (!user || !(await isPasswordValid(password, user.passwordHash))) {
-               return done(
-                  new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid email or password'),
-               );
+                if (!user || !(await isPasswordValid(password, user.passwordHash))) {
+                    return done(
+                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid username or password'),
+                    );
+                }
+
+                if (!user.isActive || user.role.deletedAt) {
+                    return done(
+                        new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Account is not active'),
+                    );
+                }
+
+                return done(null, mapAuthenticatedUser(user));
+            } catch (error) {
+                return done(error);
             }
-
-            if (!user.isActive || user.role.deletedAt) {
-               return done(
-                  new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Account is not active'),
-               );
-            }
-
-            const { passwordHash, role: userRole, ...authenticatedUser } = user;
-            const { deletedAt, ...activeRole } = userRole;
-
-            return done(null, { ...authenticatedUser, role: activeRole });
-         } catch (error) {
-            return done(error);
-         }
-      },
-   ),
+        },
+    ),
 );
 
 passport.serializeUser((user, done) => {
-   done(null, user.id);
+    done(null, user.id);
 });
 
 passport.deserializeUser(async (id: string, done) => {
-   try {
-      const user = await prisma.user.findFirst({
-         where: {
-            id,
-            deletedAt: null,
-         },
-         select: {
-            id: true,
-            email: true,
-            username: true,
-            profilePictureUrl: true,
-            role: {
-               select: {
-                  id: true,
-                  name: true,
-                  deletedAt: true,
-                  privileges: {
-                     where: {
-                        deletedAt: null,
-                     },
-                     select: {
-                        id: true,
-                        name: true,
-                     },
-                  },
-               },
-            },
-            isActive: true,
-         },
-      });
+    try {
+        const user = await AuthRepository.findSessionUserById(id);
 
-      if (!user || !user.isActive || user.role.deletedAt) {
-         return done(null, false);
-      }
+        if (!user || !user.isActive || user.role.deletedAt) {
+            return done(null, false);
+        }
 
-      const { role: userRole, ...authenticatedUser } = user;
-      const { deletedAt, ...activeRole } = userRole;
-
-      return done(null, { ...authenticatedUser, role: activeRole });
-   } catch (error) {
-      return done(error);
-   }
+        return done(null, mapAuthenticatedUser(user));
+    } catch (error) {
+        return done(error);
+    }
 });
 
 export default passport;

@@ -43,7 +43,7 @@ export class AuthController {
             }
 
             if (!user) {
-                next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid email or password'));
+                next(new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'Invalid username or password'));
                 return;
             }
 

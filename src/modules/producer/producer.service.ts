@@ -1,40 +1,19 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { ProducerRepository } from './repositories/producerRepository';
 import { CreateProducerDTO, UpdateProducerDTO } from './schemas/producer.schema';
 import { DeleteProducerResponse, ProducerResponse } from './types/producer.types';
 
-const producerSelect = {
-    id: true,
-    name: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class ProducerService {
     static async getProducers(): Promise<ProducerResponse[]> {
-        return prisma.producer.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: producerSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return ProducerRepository.findAll();
     }
 
     static async getProducer(producerId: string): Promise<ProducerResponse> {
-        const producer = await prisma.producer.findFirst({
-            where: {
-                id: producerId,
-                deletedAt: null,
-            },
-            select: producerSelect,
-        });
+        const producer = await ProducerRepository.findById(producerId);
 
         if (!producer) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Producer not found');
@@ -46,10 +25,7 @@ export class ProducerService {
     static async createProducer(producerData: CreateProducerDTO): Promise<ProducerResponse> {
         await this.ensureProducerNameIsAvailable(producerData.name);
 
-        const createdProducer = await prisma.producer.create({
-            data: producerData,
-            select: producerSelect,
-        });
+        const createdProducer = await ProducerRepository.create(producerData);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCER,
@@ -71,14 +47,7 @@ export class ProducerService {
 
         await this.ensureProducerNameIsAvailable(producerData.name, producerId);
 
-        const updatedProducer = await prisma.producer.update({
-            where: {
-                id: producerId,
-                deletedAt: null,
-            },
-            data: producerData,
-            select: producerSelect,
-        });
+        const updatedProducer = await ProducerRepository.update(producerId, producerData);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCER,
@@ -95,12 +64,7 @@ export class ProducerService {
     static async deleteProducer(producerId: string): Promise<DeleteProducerResponse> {
         const existingProducer = await this.getProducer(producerId);
 
-        const assignedProductsCount = await prisma.product.count({
-            where: {
-                producerId,
-                deletedAt: null,
-            },
-        });
+        const assignedProductsCount = await ProducerRepository.countAssignedProducts(producerId);
 
         if (assignedProductsCount > 0) {
             throw new AppError(
@@ -110,15 +74,7 @@ export class ProducerService {
             );
         }
 
-        await prisma.producer.update({
-            where: {
-                id: producerId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await ProducerRepository.softDelete(producerId);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCER,
@@ -138,20 +94,7 @@ export class ProducerService {
         producerName: string,
         excludedProducerId?: string,
     ) {
-        const existingProducer = await prisma.producer.findFirst({
-            where: {
-                id: excludedProducerId
-                    ? {
-                          not: excludedProducerId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                name: producerName,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingProducer = await ProducerRepository.findByName(producerName, excludedProducerId);
 
         if (existingProducer) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Producer name is already in use');

@@ -1,77 +1,25 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { CarModelRepository } from './repositories/carModelRepository';
 import { CreateCarModelDTO, UpdateCarModelDTO } from './schemas/carModel.schema';
 import { CarModelResponse, DeleteCarModelResponse } from './types/carModel.types';
 
-const carModelSelect = {
-    id: true,
-    name: true,
-    carBrand: {
-        select: {
-            id: true,
-            name: true,
-        },
-    },
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class CarModelService {
     static async getCarModels(): Promise<CarModelResponse[]> {
-        return prisma.carModel.findMany({
-            where: {
-                deletedAt: null,
-                carBrand: {
-                    deletedAt: null,
-                },
-            },
-            select: carModelSelect,
-            orderBy: [
-                {
-                    carBrand: {
-                        name: 'asc',
-                    },
-                },
-                {
-                    name: 'asc',
-                },
-            ],
-        });
+        return CarModelRepository.findAll();
     }
 
     static async getCarModelsByCarBrand(carBrandId: string): Promise<CarModelResponse[]> {
         await this.ensureCarBrandExists(carBrandId);
 
-        return prisma.carModel.findMany({
-            where: {
-                carBrandId,
-                deletedAt: null,
-                carBrand: {
-                    deletedAt: null,
-                },
-            },
-            select: carModelSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return CarModelRepository.findByCarBrand(carBrandId);
     }
 
     static async getCarModel(carModelId: string): Promise<CarModelResponse> {
-        const carModel = await prisma.carModel.findFirst({
-            where: {
-                id: carModelId,
-                deletedAt: null,
-                carBrand: {
-                    deletedAt: null,
-                },
-            },
-            select: carModelSelect,
-        });
+        const carModel = await CarModelRepository.findById(carModelId);
 
         if (!carModel) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car model not found');
@@ -84,10 +32,7 @@ export class CarModelService {
         await this.ensureCarBrandExists(carModelData.carBrandId);
         await this.ensureCarModelDataIsAvailable(carModelData);
 
-        const createdCarModel = await prisma.carModel.create({
-            data: carModelData,
-            select: carModelSelect,
-        });
+        const createdCarModel = await CarModelRepository.create(carModelData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_MODEL,
@@ -109,14 +54,7 @@ export class CarModelService {
         await this.ensureCarBrandExists(carModelData.carBrandId);
         await this.ensureCarModelDataIsAvailable(carModelData, carModelId);
 
-        const updatedCarModel = await prisma.carModel.update({
-            where: {
-                id: carModelId,
-                deletedAt: null,
-            },
-            data: carModelData,
-            select: carModelSelect,
-        });
+        const updatedCarModel = await CarModelRepository.update(carModelId, carModelData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_MODEL,
@@ -133,12 +71,7 @@ export class CarModelService {
     static async deleteCarModel(carModelId: string): Promise<DeleteCarModelResponse> {
         const existingCarModel = await this.getCarModel(carModelId);
 
-        const assignedCarGenerationsCount = await prisma.carGeneration.count({
-            where: {
-                carModelId,
-                deletedAt: null,
-            },
-        });
+        const assignedCarGenerationsCount = await CarModelRepository.countAssignedGenerations(carModelId);
 
         if (assignedCarGenerationsCount > 0) {
             throw new AppError(
@@ -148,15 +81,7 @@ export class CarModelService {
             );
         }
 
-        await prisma.carModel.update({
-            where: {
-                id: carModelId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await CarModelRepository.softDelete(carModelId);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_MODEL,
@@ -173,15 +98,7 @@ export class CarModelService {
     }
 
     private static async ensureCarBrandExists(carBrandId: string) {
-        const carBrand = await prisma.carBrand.findFirst({
-            where: {
-                id: carBrandId,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const carBrand = await CarModelRepository.findActiveCarBrand(carBrandId);
 
         if (!carBrand) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car brand not found');
@@ -192,21 +109,10 @@ export class CarModelService {
         carModelData: CreateCarModelDTO,
         excludedCarModelId?: string,
     ) {
-        const existingCarModel = await prisma.carModel.findFirst({
-            where: {
-                id: excludedCarModelId
-                    ? {
-                          not: excludedCarModelId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                carBrandId: carModelData.carBrandId,
-                name: carModelData.name,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingCarModel = await CarModelRepository.findConflictingModel(
+            carModelData,
+            excludedCarModelId,
+        );
 
         if (existingCarModel) {
             throw new AppError(

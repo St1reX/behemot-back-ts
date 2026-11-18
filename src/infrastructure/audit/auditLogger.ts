@@ -1,6 +1,6 @@
 import { Entity } from '../../shared/constants/entities';
 import { Action, ACTIONS } from '../../shared/constants/actions';
-import { prisma } from '../../config/database';
+import { AuditRepository } from './repositories/auditRepository';
 import { OperationStatus } from '@prisma/client';
 import { appWinston } from '../../config/logger/appWinston';
 import { getRequestContext } from '../requestContext/requestContext';
@@ -91,7 +91,7 @@ export async function createAuditLog(
     };
 
     try {
-        await prisma.log.create({ data: fullLog });
+        await AuditRepository.create(fullLog);
     } catch (error) {
         appWinston.error('Error while saving AUDIT LOG: ', error);
     }

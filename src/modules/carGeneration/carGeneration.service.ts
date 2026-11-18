@@ -1,9 +1,9 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { CarGenerationRepository } from './repositories/carGenerationRepository';
 import {
     CreateCarGenerationDTO,
     UpdateCarGenerationDTO,
@@ -13,57 +13,9 @@ import {
     DeleteCarGenerationResponse,
 } from './types/carGeneration.types';
 
-const carGenerationSelect = {
-    id: true,
-    startProduction: true,
-    endProduction: true,
-    carModel: {
-        select: {
-            id: true,
-            name: true,
-            carBrand: {
-                select: {
-                    id: true,
-                    name: true,
-                },
-            },
-        },
-    },
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class CarGenerationService {
     static async getCarGenerations(): Promise<CarGenerationResponse[]> {
-        return prisma.carGeneration.findMany({
-            where: {
-                deletedAt: null,
-                carModel: {
-                    deletedAt: null,
-                    carBrand: {
-                        deletedAt: null,
-                    },
-                },
-            },
-            select: carGenerationSelect,
-            orderBy: [
-                {
-                    carModel: {
-                        carBrand: {
-                            name: 'asc',
-                        },
-                    },
-                },
-                {
-                    carModel: {
-                        name: 'asc',
-                    },
-                },
-                {
-                    startProduction: 'desc',
-                },
-            ],
-        });
+        return CarGenerationRepository.findAll();
     }
 
     static async getCarGenerationsByCarModel(
@@ -71,38 +23,11 @@ export class CarGenerationService {
     ): Promise<CarGenerationResponse[]> {
         await this.ensureCarModelExists(carModelId);
 
-        return prisma.carGeneration.findMany({
-            where: {
-                carModelId,
-                deletedAt: null,
-                carModel: {
-                    deletedAt: null,
-                    carBrand: {
-                        deletedAt: null,
-                    },
-                },
-            },
-            select: carGenerationSelect,
-            orderBy: {
-                startProduction: 'desc',
-            },
-        });
+        return CarGenerationRepository.findByCarModel(carModelId);
     }
 
     static async getCarGeneration(carGenerationId: string): Promise<CarGenerationResponse> {
-        const carGeneration = await prisma.carGeneration.findFirst({
-            where: {
-                id: carGenerationId,
-                deletedAt: null,
-                carModel: {
-                    deletedAt: null,
-                    carBrand: {
-                        deletedAt: null,
-                    },
-                },
-            },
-            select: carGenerationSelect,
-        });
+        const carGeneration = await CarGenerationRepository.findById(carGenerationId);
 
         if (!carGeneration) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car generation not found');
@@ -117,10 +42,7 @@ export class CarGenerationService {
         await this.ensureCarModelExists(carGenerationData.carModelId);
         await this.ensureCarGenerationDataIsAvailable(carGenerationData);
 
-        const createdCarGeneration = await prisma.carGeneration.create({
-            data: carGenerationData,
-            select: carGenerationSelect,
-        });
+        const createdCarGeneration = await CarGenerationRepository.create(carGenerationData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_GENERATION,
@@ -143,14 +65,7 @@ export class CarGenerationService {
         await this.ensureCarModelExists(carGenerationData.carModelId);
         await this.ensureCarGenerationDataIsAvailable(carGenerationData, carGenerationId);
 
-        const updatedCarGeneration = await prisma.carGeneration.update({
-            where: {
-                id: carGenerationId,
-                deletedAt: null,
-            },
-            data: carGenerationData,
-            select: carGenerationSelect,
-        });
+        const updatedCarGeneration = await CarGenerationRepository.update(carGenerationId, carGenerationData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_GENERATION,
@@ -169,12 +84,9 @@ export class CarGenerationService {
     ): Promise<DeleteCarGenerationResponse> {
         const existingCarGeneration = await this.getCarGeneration(carGenerationId);
 
-        const assignedProductFitmentsCount = await prisma.productFitment.count({
-            where: {
-                carGenerationId,
-                deletedAt: null,
-            },
-        });
+        const assignedProductFitmentsCount = await CarGenerationRepository.countAssignedFitments(
+            carGenerationId,
+        );
 
         if (assignedProductFitmentsCount > 0) {
             throw new AppError(
@@ -184,15 +96,7 @@ export class CarGenerationService {
             );
         }
 
-        await prisma.carGeneration.update({
-            where: {
-                id: carGenerationId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await CarGenerationRepository.softDelete(carGenerationId);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_GENERATION,
@@ -209,18 +113,7 @@ export class CarGenerationService {
     }
 
     private static async ensureCarModelExists(carModelId: string) {
-        const carModel = await prisma.carModel.findFirst({
-            where: {
-                id: carModelId,
-                deletedAt: null,
-                carBrand: {
-                    deletedAt: null,
-                },
-            },
-            select: {
-                id: true,
-            },
-        });
+        const carModel = await CarGenerationRepository.findActiveCarModel(carModelId);
 
         if (!carModel) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car model not found');
@@ -231,22 +124,10 @@ export class CarGenerationService {
         carGenerationData: CreateCarGenerationDTO,
         excludedCarGenerationId?: string,
     ) {
-        const existingCarGeneration = await prisma.carGeneration.findFirst({
-            where: {
-                id: excludedCarGenerationId
-                    ? {
-                          not: excludedCarGenerationId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                carModelId: carGenerationData.carModelId,
-                startProduction: carGenerationData.startProduction,
-                endProduction: carGenerationData.endProduction,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingCarGeneration = await CarGenerationRepository.findConflictingGeneration(
+            carGenerationData,
+            excludedCarGenerationId,
+        );
 
         if (existingCarGeneration) {
             throw new AppError(

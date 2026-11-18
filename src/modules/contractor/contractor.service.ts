@@ -1,40 +1,19 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { ContractorRepository } from './repositories/contractorRepository';
 import { CreateContractorDTO, UpdateContractorDTO } from './schemas/contractor.schema';
 import { ContractorResponse, DeleteContractorResponse } from './types/contractor.types';
 
-const contractorSelect = {
-    id: true,
-    name: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class ContractorService {
     static async getContractors(): Promise<ContractorResponse[]> {
-        return prisma.contractor.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: contractorSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return ContractorRepository.findAll();
     }
 
     static async getContractor(contractorId: string): Promise<ContractorResponse> {
-        const contractor = await prisma.contractor.findFirst({
-            where: {
-                id: contractorId,
-                deletedAt: null,
-            },
-            select: contractorSelect,
-        });
+        const contractor = await ContractorRepository.findById(contractorId);
 
         if (!contractor) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Contractor not found');
@@ -48,10 +27,7 @@ export class ContractorService {
     ): Promise<ContractorResponse> {
         await this.ensureContractorNameIsAvailable(contractorData.name);
 
-        const createdContractor = await prisma.contractor.create({
-            data: contractorData,
-            select: contractorSelect,
-        });
+        const createdContractor = await ContractorRepository.create(contractorData);
 
         await createAuditLog({
             entityName: ENTITIES.CONTRACTOR,
@@ -73,14 +49,7 @@ export class ContractorService {
 
         await this.ensureContractorNameIsAvailable(contractorData.name, contractorId);
 
-        const updatedContractor = await prisma.contractor.update({
-            where: {
-                id: contractorId,
-                deletedAt: null,
-            },
-            data: contractorData,
-            select: contractorSelect,
-        });
+        const updatedContractor = await ContractorRepository.update(contractorId, contractorData);
 
         await createAuditLog({
             entityName: ENTITIES.CONTRACTOR,
@@ -97,12 +66,9 @@ export class ContractorService {
     static async deleteContractor(contractorId: string): Promise<DeleteContractorResponse> {
         const existingContractor = await this.getContractor(contractorId);
 
-        const assignedProductCrossReferencesCount = await prisma.productCrossReference.count({
-            where: {
-                contractorId,
-                deletedAt: null,
-            },
-        });
+        const assignedProductCrossReferencesCount = await ContractorRepository.countAssignedCrossReferences(
+            contractorId,
+        );
 
         if (assignedProductCrossReferencesCount > 0) {
             throw new AppError(
@@ -112,15 +78,7 @@ export class ContractorService {
             );
         }
 
-        await prisma.contractor.update({
-            where: {
-                id: contractorId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await ContractorRepository.softDelete(contractorId);
 
         await createAuditLog({
             entityName: ENTITIES.CONTRACTOR,
@@ -140,20 +98,7 @@ export class ContractorService {
         contractorName: string,
         excludedContractorId?: string,
     ) {
-        const existingContractor = await prisma.contractor.findFirst({
-            where: {
-                id: excludedContractorId
-                    ? {
-                          not: excludedContractorId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                name: contractorName,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingContractor = await ContractorRepository.findByName(contractorName, excludedContractorId);
 
         if (existingContractor) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Contractor name is already in use');

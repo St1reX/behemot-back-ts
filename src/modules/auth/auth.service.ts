@@ -1,19 +1,20 @@
+import { OperationStatus } from '@prisma/client';
 import { randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
-import { prisma } from '../../config/database';
+import { frontendUrl } from '../../config/env';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
+import { createAuditLog } from '../../infrastructure/audit/auditLogger';
+import { ACTIONS } from '../../shared/constants/actions';
+import { ENTITIES } from '../../shared/constants/entities';
 import { ROLES } from '../../shared/constants/roles';
+import { MailingService } from '../mailing/mailing.service';
+import { mapRegistrationTokenAuditData } from './mappers/authMapper';
+import { AuthRepository } from './repositories/authRepository';
 import {
     RegisterUserDTO,
     ResendRegistrationMailDTO,
     VerifyAccountDTO,
 } from './schemas/auth.schema';
-import { frontendUrl } from '../../config/env';
-import { MailingService } from '../mailing/mailing.service';
-import { createAuditLog } from '../../infrastructure/audit/auditLogger';
-import { ENTITIES } from '../../shared/constants/entities';
-import { ACTIONS } from '../../shared/constants/actions';
-import { OperationStatus } from '@prisma/client';
 import {
     RegisteredUserResponse,
     ResendRegistrationMailResponse,
@@ -37,25 +38,13 @@ function createConfirmationLink(registrationToken: string) {
 
 export class AuthService {
     static async registerUser(userData: RegisterUserDTO): Promise<RegisteredUserResponse> {
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                OR: [{ email: userData.email }, { username: userData.username }],
-            },
-        });
+        const existingUser = await AuthRepository.findByEmailOrUsername(userData.email, userData.username);
 
         if (existingUser) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Email or username is already in use');
         }
 
-        const defaultRole = await prisma.role.findFirst({
-            where: {
-                name: ROLES.USER,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const defaultRole = await AuthRepository.findRoleByName(ROLES.USER);
 
         if (!defaultRole) {
             throw new AppError(ErrorNames.INTERNAL_SERVER_ERROR, 500, 'Default user role is missing');
@@ -65,33 +54,21 @@ export class AuthService {
         const passwordHash = (await scryptAsync(userData.password, passwordSalt, 64)) as Buffer;
         const registrationToken = randomBytes(32).toString('hex');
 
-        const createdUser = await prisma.user.create({
-            data: {
-                email: userData.email,
-                username: userData.username,
-                passwordHash: `${passwordSalt}:${passwordHash.toString('hex')}`,
-                isActive: false,
-                role: {
-                    connect: {
-                        id: defaultRole.id,
-                    },
-                },
-                registrationToken: {
-                    create: {
-                        token: registrationToken,
-                        expiresAt: getRegistrationTokenExpirationDate(),
-                    },
+        const createdUser = await AuthRepository.create({
+            email: userData.email,
+            username: userData.username,
+            passwordHash: `${passwordSalt}:${passwordHash.toString('hex')}`,
+            isActive: false,
+            role: {
+                connect: {
+                    id: defaultRole.id,
                 },
             },
-            select: {
-                id: true,
-                username: true,
-                email: true,
-                profilePictureUrl: true,
-                role: true,
-                isActive: true,
-                createdAt: true,
-                updatedAt: true,
+            registrationToken: {
+                create: {
+                    token: registrationToken,
+                    expiresAt: getRegistrationTokenExpirationDate(),
+                },
             },
         });
 
@@ -120,29 +97,7 @@ export class AuthService {
         const RESEND_REGISTRATION_MAIL_MESSAGE =
             'If the account exists and is inactive, a verification email has been sent';
 
-        const user = await prisma.user.findFirst({
-            where: {
-                email: userData.email,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                isActive: true,
-                registrationToken: {
-                    select: {
-                        id: true,
-                        token: true,
-                        accepted: true,
-                        acceptedAt: true,
-                        expiresAt: true,
-                        updatedAt: true,
-                        deletedAt: true,
-                    },
-                },
-            },
-        });
+        const user = await AuthRepository.findForRegistrationMail(userData.email);
 
         const registrationTokenData = user?.registrationToken;
 
@@ -160,7 +115,7 @@ export class AuthService {
 
         const registrationMailResendAvailableAt = new Date(
             registrationTokenData.updatedAt.getTime() +
-                REGISTRATION_MAIL_RESEND_COOLDOWN_MINUTES * 60 * 1000,
+            REGISTRATION_MAIL_RESEND_COOLDOWN_MINUTES * 60 * 1000,
         );
 
         if (registrationMailResendAvailableAt > new Date()) {
@@ -171,22 +126,10 @@ export class AuthService {
             );
         }
 
-        const updatedRegistrationToken = await prisma.registrationToken.update({
-            where: {
-                id: registrationTokenData.id,
-                deletedAt: null,
-            },
-            data: {
-                expiresAt: getRegistrationTokenExpirationDate(),
-            },
-            select: {
-                id: true,
-                accepted: true,
-                acceptedAt: true,
-                expiresAt: true,
-                updatedAt: true,
-            },
-        });
+        const updatedRegistrationToken = await AuthRepository.extendRegistrationToken(
+            registrationTokenData.id,
+            getRegistrationTokenExpirationDate(),
+        );
 
         await createAuditLog({
             userId: user.id,
@@ -194,13 +137,7 @@ export class AuthService {
             entityId: registrationTokenData.id,
             action: ACTIONS.UPDATE,
             operationStatus: OperationStatus.SUCCESS,
-            dataBefore: {
-                id: registrationTokenData.id,
-                accepted: registrationTokenData.accepted,
-                acceptedAt: registrationTokenData.acceptedAt,
-                expiresAt: registrationTokenData.expiresAt,
-                updatedAt: registrationTokenData.updatedAt,
-            },
+            dataBefore: mapRegistrationTokenAuditData(registrationTokenData),
             dataAfter: updatedRegistrationToken,
         });
 
@@ -216,32 +153,7 @@ export class AuthService {
     }
 
     static async verifyAccount(userData: VerifyAccountDTO): Promise<VerifyAccountResponse> {
-        const registrationTokenData = await prisma.registrationToken.findFirst({
-            where: {
-                token: userData.token,
-                deletedAt: null,
-                user: {
-                    deletedAt: null,
-                },
-            },
-            select: {
-                id: true,
-                userId: true,
-                accepted: true,
-                acceptedAt: true,
-                expiresAt: true,
-                updatedAt: true,
-                user: {
-                    select: {
-                        id: true,
-                        email: true,
-                        username: true,
-                        isActive: true,
-                        updatedAt: true,
-                    },
-                },
-            },
-        });
+        const registrationTokenData = await AuthRepository.findRegistrationToken(userData.token);
 
         if (!registrationTokenData) {
             throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Invalid registration token');
@@ -253,63 +165,17 @@ export class AuthService {
 
         const acceptedAt = new Date();
 
-        const [updatedRegistrationToken, updatedUser] = await prisma.$transaction(async (tx) => {
-            const updatedTokens = await tx.registrationToken.updateMany({
-                where: {
-                    id: registrationTokenData.id,
-                    accepted: false,
-                    deletedAt: null,
-                    expiresAt: {
-                        gt: acceptedAt,
-                    },
-                },
-                data: {
-                    accepted: true,
-                    acceptedAt,
-                },
-            });
+        const verificationResult = await AuthRepository.verifyAccount(
+            registrationTokenData.id,
+            registrationTokenData.userId,
+            acceptedAt,
+        );
 
-            if (updatedTokens.count !== 1) {
-                throw new AppError(
-                    ErrorNames.BAD_REQUEST,
-                    400,
-                    'Registration token is no longer valid',
-                );
-            }
+        if (!verificationResult) {
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Registration token is no longer valid');
+        }
 
-            const updatedRegistrationToken = await tx.registrationToken.findUniqueOrThrow({
-                where: {
-                    id: registrationTokenData.id,
-                    deletedAt: null,
-                },
-                select: {
-                    id: true,
-                    accepted: true,
-                    acceptedAt: true,
-                    expiresAt: true,
-                    updatedAt: true,
-                },
-            });
-
-            const updatedUser = await tx.user.update({
-                where: {
-                    id: registrationTokenData.userId,
-                    deletedAt: null,
-                },
-                data: {
-                    isActive: true,
-                },
-                select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    isActive: true,
-                    updatedAt: true,
-                },
-            });
-
-            return [updatedRegistrationToken, updatedUser];
-        });
+        const [updatedRegistrationToken, updatedUser] = verificationResult;
 
         await createAuditLog({
             userId: registrationTokenData.userId,
@@ -317,13 +183,7 @@ export class AuthService {
             entityId: registrationTokenData.id,
             action: ACTIONS.UPDATE,
             operationStatus: OperationStatus.SUCCESS,
-            dataBefore: {
-                id: registrationTokenData.id,
-                accepted: registrationTokenData.accepted,
-                acceptedAt: registrationTokenData.acceptedAt,
-                expiresAt: registrationTokenData.expiresAt,
-                updatedAt: registrationTokenData.updatedAt,
-            },
+            dataBefore: mapRegistrationTokenAuditData(registrationTokenData),
             dataAfter: updatedRegistrationToken,
         });
 

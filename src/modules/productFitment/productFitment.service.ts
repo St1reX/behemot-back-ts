@@ -1,9 +1,9 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { ProductFitmentRepository } from './repositories/productFitmentRepository';
 import {
     CreateProductFitmentDTO,
     UpdateProductFitmentDTO,
@@ -13,83 +13,13 @@ import {
     ProductFitmentResponse,
 } from './types/productFitment.types';
 
-const productFitmentSelect = {
-    id: true,
-    product: {
-        select: {
-            id: true,
-            sku: true,
-        },
-    },
-    carGeneration: {
-        select: {
-            id: true,
-            startProduction: true,
-            endProduction: true,
-            carModel: {
-                select: {
-                    id: true,
-                    name: true,
-                    carBrand: {
-                        select: {
-                            id: true,
-                            name: true,
-                        },
-                    },
-                },
-            },
-        },
-    },
-    isPrimary: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
-const activeProductFitmentRelationsWhere = {
-    product: {
-        deletedAt: null,
-    },
-    carGeneration: {
-        deletedAt: null,
-        carModel: {
-            deletedAt: null,
-            carBrand: {
-                deletedAt: null,
-            },
-        },
-    },
-};
-
 export class ProductFitmentService {
     static async getProductFitments(): Promise<ProductFitmentResponse[]> {
-        return prisma.productFitment.findMany({
-            where: {
-                deletedAt: null,
-                ...activeProductFitmentRelationsWhere,
-            },
-            select: productFitmentSelect,
-            orderBy: [
-                {
-                    product: {
-                        sku: 'asc',
-                    },
-                },
-                {
-                    isPrimary: 'desc',
-                },
-            ],
-        });
+        return ProductFitmentRepository.findAll();
     }
 
     static async getProductFitment(productFitmentId: string): Promise<ProductFitmentResponse> {
-        const productFitment = await prisma.productFitment.findFirst({
-            where: {
-                id: productFitmentId,
-                deletedAt: null,
-                ...activeProductFitmentRelationsWhere,
-            },
-            select: productFitmentSelect,
-        });
+        const productFitment = await ProductFitmentRepository.findById(productFitmentId);
 
         if (!productFitment) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Product fitment not found');
@@ -104,10 +34,7 @@ export class ProductFitmentService {
         await this.ensureRelationsExist(productFitmentData);
         await this.ensureProductFitmentDataIsAvailable(productFitmentData);
 
-        const createdProductFitment = await prisma.productFitment.create({
-            data: productFitmentData,
-            select: productFitmentSelect,
-        });
+        const createdProductFitment = await ProductFitmentRepository.create(productFitmentData);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_FITMENT,
@@ -130,14 +57,10 @@ export class ProductFitmentService {
         await this.ensureRelationsExist(productFitmentData);
         await this.ensureProductFitmentDataIsAvailable(productFitmentData, productFitmentId);
 
-        const updatedProductFitment = await prisma.productFitment.update({
-            where: {
-                id: productFitmentId,
-                deletedAt: null,
-            },
-            data: productFitmentData,
-            select: productFitmentSelect,
-        });
+        const updatedProductFitment = await ProductFitmentRepository.update(
+            productFitmentId,
+            productFitmentData,
+        );
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_FITMENT,
@@ -164,15 +87,7 @@ export class ProductFitmentService {
             );
         }
 
-        await prisma.productFitment.update({
-            where: {
-                id: productFitmentId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await ProductFitmentRepository.softDelete(productFitmentId);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_FITMENT,
@@ -192,30 +107,8 @@ export class ProductFitmentService {
         productFitmentData: CreateProductFitmentDTO | UpdateProductFitmentDTO,
     ) {
         const [product, carGeneration] = await Promise.all([
-            prisma.product.findFirst({
-                where: {
-                    id: productFitmentData.productId,
-                    deletedAt: null,
-                },
-                select: {
-                    id: true,
-                },
-            }),
-            prisma.carGeneration.findFirst({
-                where: {
-                    id: productFitmentData.carGenerationId,
-                    deletedAt: null,
-                    carModel: {
-                        deletedAt: null,
-                        carBrand: {
-                            deletedAt: null,
-                        },
-                    },
-                },
-                select: {
-                    id: true,
-                },
-            }),
+            ProductFitmentRepository.findActiveProduct(productFitmentData),
+            ProductFitmentRepository.findActiveCarGeneration(productFitmentData),
         ]);
 
         if (!product) {
@@ -231,34 +124,10 @@ export class ProductFitmentService {
         productFitmentData: CreateProductFitmentDTO | UpdateProductFitmentDTO,
         excludedProductFitmentId?: string,
     ) {
-        const existingProductFitment = await prisma.productFitment.findFirst({
-            where: {
-                id: excludedProductFitmentId
-                    ? {
-                          not: excludedProductFitmentId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                productId: productFitmentData.productId,
-                OR: [
-                    {
-                        carGenerationId: productFitmentData.carGenerationId,
-                    },
-                    ...(productFitmentData.isPrimary
-                        ? [
-                              {
-                                  isPrimary: true,
-                              },
-                          ]
-                        : []),
-                ],
-            },
-            select: {
-                id: true,
-                carGenerationId: true,
-                isPrimary: true,
-            },
-        });
+        const existingProductFitment = await ProductFitmentRepository.findConflictingFitment(
+            productFitmentData,
+            excludedProductFitmentId,
+        );
 
         if (!existingProductFitment) {
             return;

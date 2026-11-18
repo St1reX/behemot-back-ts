@@ -1,9 +1,9 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { ProductListingTemplateRepository } from './repositories/productListingTemplateRepository';
 import {
     CreateProductListingTemplateDTO,
     UpdateProductListingTemplateDTO,
@@ -13,59 +13,17 @@ import {
     ProductListingTemplateResponse,
 } from './types/productListingTemplate.types';
 
-const productListingTemplateSelect = {
-    id: true,
-    name: true,
-    titleTemplate: true,
-    summaryTemplate: true,
-    descriptionTemplate: true,
-    department: {
-        select: {
-            id: true,
-            name: true,
-            shortcut: true,
-        },
-    },
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class ProductListingTemplateService {
     static async getProductListingTemplates(): Promise<ProductListingTemplateResponse[]> {
-        return prisma.productListingTemplate.findMany({
-            where: {
-                deletedAt: null,
-                department: {
-                    deletedAt: null,
-                },
-            },
-            select: productListingTemplateSelect,
-            orderBy: [
-                {
-                    department: {
-                        name: 'asc',
-                    },
-                },
-                {
-                    name: 'asc',
-                },
-            ],
-        });
+        return ProductListingTemplateRepository.findAll();
     }
 
     static async getProductListingTemplate(
         productListingTemplateId: string,
     ): Promise<ProductListingTemplateResponse> {
-        const productListingTemplate = await prisma.productListingTemplate.findFirst({
-            where: {
-                id: productListingTemplateId,
-                deletedAt: null,
-                department: {
-                    deletedAt: null,
-                },
-            },
-            select: productListingTemplateSelect,
-        });
+        const productListingTemplate = await ProductListingTemplateRepository.findById(
+            productListingTemplateId,
+        );
 
         if (!productListingTemplate) {
             throw new AppError(
@@ -84,10 +42,9 @@ export class ProductListingTemplateService {
         await this.ensureDepartmentExists(productListingTemplateData.departmentId);
         await this.ensureProductListingTemplateNameIsAvailable(productListingTemplateData.name);
 
-        const createdProductListingTemplate = await prisma.productListingTemplate.create({
-            data: productListingTemplateData,
-            select: productListingTemplateSelect,
-        });
+        const createdProductListingTemplate = await ProductListingTemplateRepository.create(
+            productListingTemplateData,
+        );
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_LISTING_TEMPLATE,
@@ -115,14 +72,10 @@ export class ProductListingTemplateService {
             productListingTemplateId,
         );
 
-        const updatedProductListingTemplate = await prisma.productListingTemplate.update({
-            where: {
-                id: productListingTemplateId,
-                deletedAt: null,
-            },
-            data: productListingTemplateData,
-            select: productListingTemplateSelect,
-        });
+        const updatedProductListingTemplate = await ProductListingTemplateRepository.update(
+            productListingTemplateId,
+            productListingTemplateData,
+        );
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_LISTING_TEMPLATE,
@@ -143,12 +96,9 @@ export class ProductListingTemplateService {
             productListingTemplateId,
         );
 
-        const assignedProductsCount = await prisma.product.count({
-            where: {
-                listingTemplateId: productListingTemplateId,
-                deletedAt: null,
-            },
-        });
+        const assignedProductsCount = await ProductListingTemplateRepository.countAssignedProducts(
+            productListingTemplateId,
+        );
 
         if (assignedProductsCount > 0) {
             throw new AppError(
@@ -158,15 +108,7 @@ export class ProductListingTemplateService {
             );
         }
 
-        await prisma.productListingTemplate.update({
-            where: {
-                id: productListingTemplateId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await ProductListingTemplateRepository.softDelete(productListingTemplateId);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_LISTING_TEMPLATE,
@@ -183,15 +125,7 @@ export class ProductListingTemplateService {
     }
 
     private static async ensureDepartmentExists(departmentId: string) {
-        const department = await prisma.department.findFirst({
-            where: {
-                id: departmentId,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const department = await ProductListingTemplateRepository.findActiveDepartment(departmentId);
 
         if (!department) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Department not found');
@@ -202,20 +136,10 @@ export class ProductListingTemplateService {
         productListingTemplateName: string,
         excludedProductListingTemplateId?: string,
     ) {
-        const existingProductListingTemplate = await prisma.productListingTemplate.findFirst({
-            where: {
-                id: excludedProductListingTemplateId
-                    ? {
-                          not: excludedProductListingTemplateId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                name: productListingTemplateName,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingProductListingTemplate = await ProductListingTemplateRepository.findByName(
+            productListingTemplateName,
+            excludedProductListingTemplateId,
+        );
 
         if (existingProductListingTemplate) {
             throw new AppError(

@@ -1,9 +1,9 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { ProductCrossReferenceRepository } from './repositories/productCrossReferenceRepository';
 import {
     CreateProductCrossReferenceDTO,
     UpdateProductCrossReferenceDTO,
@@ -13,69 +13,15 @@ import {
     ProductCrossReferenceResponse,
 } from './types/productCrossReference.types';
 
-const productCrossReferenceSelect = {
-    id: true,
-    product: {
-        select: {
-            id: true,
-            sku: true,
-        },
-    },
-    contractor: {
-        select: {
-            id: true,
-            name: true,
-        },
-    },
-    contractorSku: true,
-    contractorEan: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
-const activeProductCrossReferenceRelationsWhere = {
-    product: {
-        deletedAt: null,
-    },
-    contractor: {
-        deletedAt: null,
-    },
-};
-
 export class ProductCrossReferenceService {
     static async getProductCrossReferences(): Promise<ProductCrossReferenceResponse[]> {
-        return prisma.productCrossReference.findMany({
-            where: {
-                deletedAt: null,
-                ...activeProductCrossReferenceRelationsWhere,
-            },
-            select: productCrossReferenceSelect,
-            orderBy: [
-                {
-                    product: {
-                        sku: 'asc',
-                    },
-                },
-                {
-                    contractor: {
-                        name: 'asc',
-                    },
-                },
-            ],
-        });
+        return ProductCrossReferenceRepository.findAll();
     }
 
     static async getProductCrossReference(
         productCrossReferenceId: string,
     ): Promise<ProductCrossReferenceResponse> {
-        const productCrossReference = await prisma.productCrossReference.findFirst({
-            where: {
-                id: productCrossReferenceId,
-                deletedAt: null,
-                ...activeProductCrossReferenceRelationsWhere,
-            },
-            select: productCrossReferenceSelect,
-        });
+        const productCrossReference = await ProductCrossReferenceRepository.findById(productCrossReferenceId);
 
         if (!productCrossReference) {
             throw new AppError(
@@ -94,10 +40,9 @@ export class ProductCrossReferenceService {
         await this.ensureRelationsExist(productCrossReferenceData);
         await this.ensureProductCrossReferenceDataIsAvailable(productCrossReferenceData);
 
-        const createdProductCrossReference = await prisma.productCrossReference.create({
-            data: productCrossReferenceData,
-            select: productCrossReferenceSelect,
-        });
+        const createdProductCrossReference = await ProductCrossReferenceRepository.create(
+            productCrossReferenceData,
+        );
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_CROSS_REFERENCE,
@@ -124,14 +69,10 @@ export class ProductCrossReferenceService {
             productCrossReferenceId,
         );
 
-        const updatedProductCrossReference = await prisma.productCrossReference.update({
-            where: {
-                id: productCrossReferenceId,
-                deletedAt: null,
-            },
-            data: productCrossReferenceData,
-            select: productCrossReferenceSelect,
-        });
+        const updatedProductCrossReference = await ProductCrossReferenceRepository.update(
+            productCrossReferenceId,
+            productCrossReferenceData,
+        );
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_CROSS_REFERENCE,
@@ -151,15 +92,7 @@ export class ProductCrossReferenceService {
         const existingProductCrossReference =
             await this.getProductCrossReference(productCrossReferenceId);
 
-        await prisma.productCrossReference.update({
-            where: {
-                id: productCrossReferenceId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await ProductCrossReferenceRepository.softDelete(productCrossReferenceId);
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT_CROSS_REFERENCE,
@@ -181,24 +114,8 @@ export class ProductCrossReferenceService {
             | UpdateProductCrossReferenceDTO,
     ) {
         const [product, contractor] = await Promise.all([
-            prisma.product.findFirst({
-                where: {
-                    id: productCrossReferenceData.productId,
-                    deletedAt: null,
-                },
-                select: {
-                    id: true,
-                },
-            }),
-            prisma.contractor.findFirst({
-                where: {
-                    id: productCrossReferenceData.contractorId,
-                    deletedAt: null,
-                },
-                select: {
-                    id: true,
-                },
-            }),
+            ProductCrossReferenceRepository.findActiveProduct(productCrossReferenceData),
+            ProductCrossReferenceRepository.findActiveContractor(productCrossReferenceData),
         ]);
 
         if (!product) {
@@ -216,33 +133,10 @@ export class ProductCrossReferenceService {
             | UpdateProductCrossReferenceDTO,
         excludedProductCrossReferenceId?: string,
     ) {
-        const existingProductCrossReference = await prisma.productCrossReference.findFirst({
-            where: {
-                id: excludedProductCrossReferenceId
-                    ? {
-                          not: excludedProductCrossReferenceId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                OR: [
-                    {
-                        productId: productCrossReferenceData.productId,
-                        contractorId: productCrossReferenceData.contractorId,
-                        contractorSku: productCrossReferenceData.contractorSku,
-                    },
-                    ...(productCrossReferenceData.contractorEan
-                        ? [
-                              {
-                                  contractorEan: productCrossReferenceData.contractorEan,
-                              },
-                          ]
-                        : []),
-                ],
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingProductCrossReference = await ProductCrossReferenceRepository.findConflictingCrossReference(
+            productCrossReferenceData,
+            excludedProductCrossReferenceId,
+        );
 
         if (existingProductCrossReference) {
             throw new AppError(

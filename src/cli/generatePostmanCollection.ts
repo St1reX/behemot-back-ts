@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { apiPort, apiUrl, env } from '../config/env';
+import { apiPort, apiUrl } from '../config/env';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -78,7 +78,7 @@ const routeRegex = /router\.(get|post|put|delete|patch)\(\s*['"`]([^'"`]+)['"`]/
 const requestBodies: Record<string, ModuleRequestBodies> = {
     auth: {
         'POST /auth/login': {
-            email: 'admin@example.com',
+            username: 'admin',
             password: 'password123',
         },
         'POST /auth/register': {

@@ -1,80 +1,29 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { getRequestContext } from '../../infrastructure/requestContext/requestContext';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { RoleRepository } from './repositories/roleRepository';
 import { CreateRoleDTO, UpdateRolePrivilegesDTO } from './schemas/role.schema';
 import {
     DeleteRoleResponse,
     PrivilegeResponse,
-    RoleResponse,
     RoleDetailsResponse,
+    RoleResponse,
 } from './types/role.types';
-
-const roleDetailsSelect = {
-    id: true,
-    name: true,
-    privileges: {
-        where: {
-            deletedAt: null,
-        },
-        select: {
-            id: true,
-            name: true,
-        },
-        orderBy: {
-            name: 'asc' as const,
-        },
-    },
-    createdAt: true,
-    updatedAt: true,
-};
-
-const roleSelect = {
-    id: true,
-    name: true,
-    createdAt: true,
-    updatedAt: true,
-};
 
 export class RoleService {
     static async getPrivileges(): Promise<PrivilegeResponse[]> {
-        return prisma.privilege.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-                name: true,
-            },
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return RoleRepository.findPrivileges();
     }
 
     static async getRoles(): Promise<RoleResponse[]> {
-        return prisma.role.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: roleSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return RoleRepository.findAll();
     }
 
     static async getRole(roleId: string): Promise<RoleDetailsResponse> {
-        const role = await prisma.role.findFirst({
-            where: {
-                id: roleId,
-                deletedAt: null,
-            },
-            select: roleDetailsSelect,
-        });
+        const role = await RoleRepository.findById(roleId);
 
         if (!role) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Role not found');
@@ -86,10 +35,7 @@ export class RoleService {
     static async createRole(roleData: CreateRoleDTO): Promise<RoleResponse> {
         await this.ensureRoleNameIsAvailable(roleData.name);
 
-        const createdRole = await prisma.role.create({
-            data: roleData,
-            select: roleSelect,
-        });
+        const createdRole = await RoleRepository.create(roleData);
 
         await createAuditLog({
             entityName: ENTITIES.ROLE,
@@ -106,11 +52,7 @@ export class RoleService {
     static async deleteRole(roleId: string): Promise<DeleteRoleResponse> {
         const existingRole = await this.getRole(roleId);
 
-        const assignedUsersCount = await prisma.user.count({
-            where: {
-                AND: [{ roleId }, { deletedAt: null }],
-            },
-        });
+        const assignedUsersCount = await RoleRepository.countAssignedUsers(roleId);
 
         if (assignedUsersCount > 0) {
             throw new AppError(
@@ -120,15 +62,7 @@ export class RoleService {
             );
         }
 
-        await prisma.role.update({
-            where: {
-                id: roleId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await RoleRepository.softDelete(roleId);
 
         await createAuditLog({
             entityName: ENTITIES.ROLE,
@@ -163,20 +97,7 @@ export class RoleService {
             return existingRole;
         }
 
-        const updatedRole = await prisma.role.update({
-            where: {
-                id: roleId,
-                deletedAt: null,
-            },
-            data: {
-                privileges: {
-                    connect: privilegeIdsToGrant.map((privilegeId) => ({
-                        id: privilegeId,
-                    })),
-                },
-            },
-            select: roleDetailsSelect,
-        });
+        const updatedRole = await RoleRepository.grantPrivileges(roleId, privilegeIdsToGrant);
 
         await createAuditLog({
             entityName: ENTITIES.ROLE,
@@ -209,20 +130,7 @@ export class RoleService {
             return existingRole;
         }
 
-        const updatedRole = await prisma.role.update({
-            where: {
-                id: roleId,
-                deletedAt: null,
-            },
-            data: {
-                privileges: {
-                    disconnect: privilegeIdsToRevoke.map((privilegeId) => ({
-                        id: privilegeId,
-                    })),
-                },
-            },
-            select: roleDetailsSelect,
-        });
+        const updatedRole = await RoleRepository.revokePrivileges(roleId, privilegeIdsToRevoke);
 
         await createAuditLog({
             entityName: ENTITIES.ROLE,
@@ -238,17 +146,7 @@ export class RoleService {
 
     private static async getActivePrivilegeIds(privilegeIds: string[]): Promise<string[]> {
         const uniquePrivilegeIds = [...new Set(privilegeIds)];
-        const activePrivileges = await prisma.privilege.findMany({
-            where: {
-                id: {
-                    in: uniquePrivilegeIds,
-                },
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const activePrivileges = await RoleRepository.findActivePrivileges(uniquePrivilegeIds);
 
         if (activePrivileges.length !== uniquePrivilegeIds.length) {
             throw new AppError(
@@ -262,15 +160,7 @@ export class RoleService {
     }
 
     private static async ensureRoleNameIsAvailable(roleName: string) {
-        const existingRole = await prisma.role.findFirst({
-            where: {
-                name: roleName,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingRole = await RoleRepository.findByName(roleName);
 
         if (existingRole) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Role name is already in use');
@@ -284,15 +174,7 @@ export class RoleService {
             throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated');
         }
 
-        const user = await prisma.user.findFirst({
-            where: {
-                id: userId,
-                deletedAt: null,
-            },
-            select: {
-                roleId: true,
-            },
-        });
+        const user = await RoleRepository.findActiveUserRole(userId);
 
         if (!user) {
             throw new AppError(ErrorNames.AUTHENTICATION_ERROR, 401, 'User not authenticated');

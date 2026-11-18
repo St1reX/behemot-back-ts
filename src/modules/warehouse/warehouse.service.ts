@@ -1,44 +1,19 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { WarehouseRepository } from './repositories/warehouseRepository';
 import { CreateWarehouseDTO, UpdateWarehouseDTO } from './schemas/warehouse.schema';
 import { DeleteWarehouseResponse, WarehouseResponse } from './types/warehouse.types';
 
-const warehouseSelect = {
-    id: true,
-    name: true,
-    postalCode: true,
-    city: true,
-    street: true,
-    buildingNumber: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class WarehouseService {
     static async getWarehouses(): Promise<WarehouseResponse[]> {
-        return prisma.warehouse.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: warehouseSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return WarehouseRepository.findAll();
     }
 
     static async getWarehouse(warehouseId: string): Promise<WarehouseResponse> {
-        const warehouse = await prisma.warehouse.findFirst({
-            where: {
-                id: warehouseId,
-                deletedAt: null,
-            },
-            select: warehouseSelect,
-        });
+        const warehouse = await WarehouseRepository.findById(warehouseId);
 
         if (!warehouse) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Warehouse not found');
@@ -50,10 +25,7 @@ export class WarehouseService {
     static async createWarehouse(warehouseData: CreateWarehouseDTO): Promise<WarehouseResponse> {
         await this.ensureWarehouseNameIsAvailable(warehouseData.name);
 
-        const createdWarehouse = await prisma.warehouse.create({
-            data: warehouseData,
-            select: warehouseSelect,
-        });
+        const createdWarehouse = await WarehouseRepository.create(warehouseData);
 
         await createAuditLog({
             entityName: ENTITIES.WAREHOUSE,
@@ -75,14 +47,7 @@ export class WarehouseService {
 
         await this.ensureWarehouseNameIsAvailable(warehouseData.name, warehouseId);
 
-        const updatedWarehouse = await prisma.warehouse.update({
-            where: {
-                id: warehouseId,
-                deletedAt: null,
-            },
-            data: warehouseData,
-            select: warehouseSelect,
-        });
+        const updatedWarehouse = await WarehouseRepository.update(warehouseId, warehouseData);
 
         await createAuditLog({
             entityName: ENTITIES.WAREHOUSE,
@@ -99,12 +64,7 @@ export class WarehouseService {
     static async deleteWarehouse(warehouseId: string): Promise<DeleteWarehouseResponse> {
         const existingWarehouse = await this.getWarehouse(warehouseId);
 
-        const assignedProductsCount = await prisma.product.count({
-            where: {
-                warehouseId,
-                deletedAt: null,
-            },
-        });
+        const assignedProductsCount = await WarehouseRepository.countAssignedProducts(warehouseId);
 
         if (assignedProductsCount > 0) {
             throw new AppError(
@@ -114,15 +74,7 @@ export class WarehouseService {
             );
         }
 
-        await prisma.warehouse.update({
-            where: {
-                id: warehouseId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await WarehouseRepository.softDelete(warehouseId);
 
         await createAuditLog({
             entityName: ENTITIES.WAREHOUSE,
@@ -142,20 +94,7 @@ export class WarehouseService {
         warehouseName: string,
         excludedWarehouseId?: string,
     ) {
-        const existingWarehouse = await prisma.warehouse.findFirst({
-            where: {
-                id: excludedWarehouseId
-                    ? {
-                          not: excludedWarehouseId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                name: warehouseName,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingWarehouse = await WarehouseRepository.findByName(warehouseName, excludedWarehouseId);
 
         if (existingWarehouse) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Warehouse name is already in use');

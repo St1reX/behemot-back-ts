@@ -34,7 +34,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Log in",
+        "summary": "Log in with username and password",
         "requestBody": {
           "required": true,
           "content": {
@@ -42,17 +42,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
                   "password": {
                     "type": "string",
                     "minLength": 8
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 25
                   }
                 },
                 "required": [
-                  "email",
+                  "username",
                   "password"
                 ]
               }

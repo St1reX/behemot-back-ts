@@ -1,8 +1,8 @@
-import { buildProductPlaceholderValues } from './buildProductPlaceholderValues';
+import { buildProductPlaceholderValues } from '../utils/rendering/buildProductPlaceholderValues';
 import {
     ProductListingTemplateRenderError,
     renderProductListingTemplate,
-} from './renderProductListingTemplate';
+} from '../utils/rendering/renderProductListingTemplate';
 
 type ProductListingContentData = Parameters<typeof buildProductPlaceholderValues>[0] & {
     listingTemplate: {

@@ -67,7 +67,7 @@ module.exports = {
     '/auth/login': {
       post: {
         tags: ['Auth'],
-        summary: 'Log in',
+        summary: 'Log in with username and password',
         requestBody: {
           required: true,
           content: {
@@ -75,10 +75,10 @@ module.exports = {
               schema: {
                 type: 'object',
                 properties: {
-                  email: { type: 'string', format: 'email' },
+                  username: { type: 'string', minLength: 3, maxLength: 25 },
                   password: { type: 'string', minLength: 8 },
                 },
-                required: ['email', 'password'],
+                required: ['username', 'password'],
               },
             },
           },

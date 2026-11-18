@@ -1,40 +1,19 @@
 import { OperationStatus } from '@prisma/client';
-import { prisma } from '../../config/database';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
+import { CarBrandRepository } from './repositories/carBrandRepository';
 import { CreateCarBrandDTO, UpdateCarBrandDTO } from './schemas/carBrand.schema';
 import { CarBrandResponse, DeleteCarBrandResponse } from './types/carBrand.types';
 
-const carBrandSelect = {
-    id: true,
-    name: true,
-    createdAt: true,
-    updatedAt: true,
-};
-
 export class CarBrandService {
     static async getCarBrands(): Promise<CarBrandResponse[]> {
-        return prisma.carBrand.findMany({
-            where: {
-                deletedAt: null,
-            },
-            select: carBrandSelect,
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        return CarBrandRepository.findAll();
     }
 
     static async getCarBrand(carBrandId: string): Promise<CarBrandResponse> {
-        const carBrand = await prisma.carBrand.findFirst({
-            where: {
-                id: carBrandId,
-                deletedAt: null,
-            },
-            select: carBrandSelect,
-        });
+        const carBrand = await CarBrandRepository.findById(carBrandId);
 
         if (!carBrand) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Car brand not found');
@@ -46,10 +25,7 @@ export class CarBrandService {
     static async createCarBrand(carBrandData: CreateCarBrandDTO): Promise<CarBrandResponse> {
         await this.ensureCarBrandNameIsAvailable(carBrandData.name);
 
-        const createdCarBrand = await prisma.carBrand.create({
-            data: carBrandData,
-            select: carBrandSelect,
-        });
+        const createdCarBrand = await CarBrandRepository.create(carBrandData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_BRAND,
@@ -71,14 +47,7 @@ export class CarBrandService {
 
         await this.ensureCarBrandNameIsAvailable(carBrandData.name, carBrandId);
 
-        const updatedCarBrand = await prisma.carBrand.update({
-            where: {
-                id: carBrandId,
-                deletedAt: null,
-            },
-            data: carBrandData,
-            select: carBrandSelect,
-        });
+        const updatedCarBrand = await CarBrandRepository.update(carBrandId, carBrandData);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_BRAND,
@@ -95,12 +64,7 @@ export class CarBrandService {
     static async deleteCarBrand(carBrandId: string): Promise<DeleteCarBrandResponse> {
         const existingCarBrand = await this.getCarBrand(carBrandId);
 
-        const assignedCarModelsCount = await prisma.carModel.count({
-            where: {
-                carBrandId,
-                deletedAt: null,
-            },
-        });
+        const assignedCarModelsCount = await CarBrandRepository.countAssignedModels(carBrandId);
 
         if (assignedCarModelsCount > 0) {
             throw new AppError(
@@ -110,15 +74,7 @@ export class CarBrandService {
             );
         }
 
-        await prisma.carBrand.update({
-            where: {
-                id: carBrandId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
+        await CarBrandRepository.softDelete(carBrandId);
 
         await createAuditLog({
             entityName: ENTITIES.CAR_BRAND,
@@ -138,20 +94,7 @@ export class CarBrandService {
         carBrandName: string,
         excludedCarBrandId?: string,
     ) {
-        const existingCarBrand = await prisma.carBrand.findFirst({
-            where: {
-                id: excludedCarBrandId
-                    ? {
-                          not: excludedCarBrandId,
-                      }
-                    : undefined,
-                deletedAt: null,
-                name: carBrandName,
-            },
-            select: {
-                id: true,
-            },
-        });
+        const existingCarBrand = await CarBrandRepository.findByName(carBrandName, excludedCarBrandId);
 
         if (existingCarBrand) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Car brand name is already in use');
