@@ -10,6 +10,25 @@ const router = Router();
 router.use(requireAuth);
 
 router.get(
+    '/placeholders',
+    requirePrivilege([
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.READ}`,
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.CREATE}`,
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.UPDATE}`,
+    ]),
+    ProductListingTemplateController.getPlaceholders,
+);
+router.post(
+    '/preview',
+    requirePrivilege([
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.READ}`,
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.CREATE}`,
+        `${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.UPDATE}`,
+    ]),
+    ProductListingTemplateController.preview,
+);
+
+router.get(
     '/',
     requirePrivilege(`${ENTITIES.PRODUCT_LISTING_TEMPLATE}:${ACTIONS.READ}`),
     ProductListingTemplateController.getProductListingTemplates,

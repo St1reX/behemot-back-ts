@@ -33,10 +33,12 @@ export function mapProductListingContent(
             summary: renderProductListingTemplate(
                 product.listingTemplate.summaryTemplate,
                 placeholderValues,
+                true,
             ),
             description: renderProductListingTemplate(
                 product.listingTemplate.descriptionTemplate,
                 placeholderValues,
+                true,
             ),
             listingContentError: null,
         };

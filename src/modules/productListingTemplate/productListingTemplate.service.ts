@@ -7,13 +7,30 @@ import { ProductListingTemplateRepository } from './repositories/productListingT
 import {
     CreateProductListingTemplateDTO,
     UpdateProductListingTemplateDTO,
+    PreviewProductListingTemplateDTO,
 } from './schemas/productListingTemplate.schema';
 import {
     DeleteProductListingTemplateResponse,
     ProductListingTemplateResponse,
+    ProductListingPlaceholderResponse,
+    ProductListingTemplatePreviewResponse,
 } from './types/productListingTemplate.types';
+import { productListingExampleValues, productListingPlaceholders } from './constants/productListingPlaceholders';
+import { renderProductListingTemplate } from './utils/rendering/renderProductListingTemplate';
 
 export class ProductListingTemplateService {
+    static getPlaceholders(): ProductListingPlaceholderResponse[] {
+        return productListingPlaceholders;
+    }
+
+    static preview(data: PreviewProductListingTemplateDTO): ProductListingTemplatePreviewResponse {
+        return {
+            title: renderProductListingTemplate(data.titleTemplate, productListingExampleValues),
+            summary: renderProductListingTemplate(data.summaryTemplate, productListingExampleValues, true),
+            description: renderProductListingTemplate(data.descriptionTemplate, productListingExampleValues, true),
+        };
+    }
+
     static async getProductListingTemplates(): Promise<ProductListingTemplateResponse[]> {
         return ProductListingTemplateRepository.findAll();
     }

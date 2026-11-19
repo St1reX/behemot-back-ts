@@ -3,14 +3,34 @@ import {
     CreateProductListingTemplateSchema,
     ProductListingTemplateIdSchema,
     UpdateProductListingTemplateSchema,
+    PreviewProductListingTemplateSchema,
 } from './schemas/productListingTemplate.schema';
 import { ProductListingTemplateService } from './productListingTemplate.service';
 import {
     DeleteProductListingTemplateResponse,
     ProductListingTemplateResponse,
+    ProductListingPlaceholderResponse,
+    ProductListingTemplatePreviewResponse,
 } from './types/productListingTemplate.types';
 
 export class ProductListingTemplateController {
+    static getPlaceholders(_req: Request, res: Response<ProductListingPlaceholderResponse[]>, next: NextFunction) {
+        try {
+            res.status(200).json(ProductListingTemplateService.getPlaceholders());
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static preview(req: Request, res: Response<ProductListingTemplatePreviewResponse>, next: NextFunction) {
+        try {
+            const data = PreviewProductListingTemplateSchema.parse(req.body);
+            res.status(200).json(ProductListingTemplateService.preview(data));
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async getProductListingTemplates(
         req: Request,
         res: Response<ProductListingTemplateResponse[]>,

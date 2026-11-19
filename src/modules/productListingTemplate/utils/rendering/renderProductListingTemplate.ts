@@ -1,4 +1,5 @@
 import { ProductPlaceholderValues } from './buildProductPlaceholderValues';
+import { escapeListingText, prepareListingHtml } from './listingHtml';
 
 const PLACEHOLDER_PATTERN = /{{\s*([^{}]+?)\s*}}/g;
 
@@ -12,17 +13,19 @@ export class ProductListingTemplateRenderError extends Error {
 export function renderProductListingTemplate(
     template: string,
     placeholderValues: ProductPlaceholderValues,
+    html = false,
 ): string {
-    return template.replace(PLACEHOLDER_PATTERN, (placeholder, rawPlaceholderName: string) => {
+    const content = html ? prepareListingHtml(template) : template;
+    return content.replace(PLACEHOLDER_PATTERN, (placeholder, rawPlaceholderName: string) => {
         const placeholderName = rawPlaceholderName.trim();
 
-        if (!(placeholderName in placeholderValues)) {
+        if (!Object.prototype.hasOwnProperty.call(placeholderValues, placeholderName)) {
             throw new ProductListingTemplateRenderError(
                 `Unknown listing template placeholder ${placeholder}`,
             );
         }
 
-        const placeholderValue = placeholderValues[placeholderName];
+        const placeholderValue = placeholderValues[placeholderName as keyof ProductPlaceholderValues];
 
         if (placeholderValue === null) {
             throw new ProductListingTemplateRenderError(
@@ -30,6 +33,6 @@ export function renderProductListingTemplate(
             );
         }
 
-        return placeholderValue;
+        return html ? escapeListingText(placeholderValue) : placeholderValue;
     });
 }

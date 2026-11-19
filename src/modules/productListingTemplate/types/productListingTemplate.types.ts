@@ -16,3 +16,17 @@ export interface ProductListingTemplateResponse {
 export interface DeleteProductListingTemplateResponse {
     message: string;
 }
+
+export interface ProductListingPlaceholderResponse {
+    name: string;
+    label: string;
+    description: string;
+    optional: boolean;
+    example: string;
+}
+
+export interface ProductListingTemplatePreviewResponse {
+    title: string;
+    summary: string;
+    description: string;
+}

@@ -38,11 +38,11 @@ interface ProductFitmentPlaceholderData {
     };
 }
 
-export type ProductPlaceholderValues = Record<string, string | null>;
+export type ProductPlaceholderValues = ReturnType<typeof buildProductPlaceholderValues>;
 
 export function buildProductPlaceholderValues(
     product: ProductPlaceholderData,
-): ProductPlaceholderValues {
+) {
     const primaryFitment = product.productFitments.find((fitment) => fitment.isPrimary);
     const primaryCarGeneration = primaryFitment?.carGeneration;
     const productionYears = primaryCarGeneration
