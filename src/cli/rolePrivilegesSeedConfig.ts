@@ -1,11 +1,9 @@
 import { ROLES, RoleName } from '../shared/constants/roles';
-import { PrivilegesValue } from '../shared/constants/privileges';
+import { PRIVILEGES, PrivilegesValue } from '../shared/constants/privileges';
 import { ENTITIES, Entity } from '../shared/constants/entities';
-import { ACTIONS } from '../shared/constants/actions';
 
 // Wartości const do mapy uprawnień
 const EntitiesValuesArray = Object.values(ENTITIES);
-const ActionsValuesArray = Object.values(ACTIONS);
 
 // Typ konfiguracji roli:
 // privileges może być null (wszystkie prawa),
@@ -27,9 +25,7 @@ export const rolesToSeed: RoleSeedConfig[] = [
 export function expandPrivileges(input: Array<PrivilegesValue | Entity> | null): PrivilegesValue[] {
     if (input === null) {
         // null oznacza *wszystkie uprawnienia*
-        return EntitiesValuesArray.flatMap((entity) =>
-            ActionsValuesArray.map((action) => `${entity}:${action}` as PrivilegesValue),
-        );
+        return [...PRIVILEGES];
     }
 
     const expanded = new Set<PrivilegesValue>();
@@ -37,12 +33,12 @@ export function expandPrivileges(input: Array<PrivilegesValue | Entity> | null):
     for (const item of input) {
         if (EntitiesValuesArray.includes(item as Entity)) {
             // Jeśli item jest encją, dodaj wszystkie uprawnienia dla niej
-            ActionsValuesArray.forEach((action) =>
-                expanded.add(`${item}:${action}` as PrivilegesValue),
+            PRIVILEGES.filter((privilege) => privilege.startsWith(`${item}:`)).forEach((privilege) =>
+                expanded.add(privilege),
             );
         } else {
             // Jeśli to pojedyncze uprawnienie, dodaj bez zmian
-            expanded.add(item as PrivilegesValue);
+            if (PRIVILEGES.includes(item as PrivilegesValue)) expanded.add(item as PrivilegesValue);
         }
     }
 

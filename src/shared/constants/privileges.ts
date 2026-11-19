@@ -6,7 +6,7 @@ const ActionsValuesArray = Object.values(ACTIONS);
 
 export const PRIVILEGES: `${Entity}:${Action}`[] = (EntitiesValuesArray as Entity[]).flatMap(
     (entity) =>
-        (ActionsValuesArray as Action[]).map(
+        (entity === ENTITIES.AUDIT_LOG ? [ACTIONS.READ] : ActionsValuesArray as Action[]).map(
             (action) => `${entity}:${action}` as `${keyof typeof ENTITIES}:${keyof typeof ACTIONS}`,
         ),
 );

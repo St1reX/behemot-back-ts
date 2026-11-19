@@ -1,4 +1,5 @@
 export const ENTITIES = {
+    AUDIT_LOG: 'AUDIT_LOG',
     USER: 'USER',
     REGISTRATION_TOKEN: 'REGISTRATION_TOKEN',
     ROLE: 'ROLE',

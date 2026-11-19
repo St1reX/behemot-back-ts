@@ -49,6 +49,9 @@ export class AuthRepository {
                 username: true,
                 email: true,
                 profilePictureUrl: true,
+                registrationToken: {
+                    select: { id: true, accepted: true, acceptedAt: true, expiresAt: true, updatedAt: true },
+                },
                 role: true,
                 isActive: true,
                 createdAt: true,

@@ -81,16 +81,13 @@ export async function createAuditLog(
         userId,
     };
 
-    const suspicionResult = analyzeSuspicion(logWithRequestContext);
-
-    const fullLog: LogEntry = {
-        ...logWithRequestContext,
-        isSuspicious: suspicionResult.isSuspicious,
-        suspiciousReason: suspicionResult.suspiciousReason,
-        createdAt: new Date(),
-    };
-
     try {
+        const suspicionResult = analyzeSuspicion(logWithRequestContext);
+        const fullLog: LogEntry = {
+            ...logWithRequestContext,
+            ...suspicionResult,
+            createdAt: new Date(),
+        };
         await AuditRepository.create(fullLog);
     } catch (error) {
         appWinston.error('Error while saving AUDIT LOG: ', error);

@@ -54,7 +54,7 @@ export class AuthService {
         const passwordHash = (await scryptAsync(userData.password, passwordSalt, 64)) as Buffer;
         const registrationToken = randomBytes(32).toString('hex');
 
-        const createdUser = await AuthRepository.create({
+        const { registrationToken: createdRegistrationToken, ...createdUser } = await AuthRepository.create({
             email: userData.email,
             username: userData.username,
             passwordHash: `${passwordSalt}:${passwordHash.toString('hex')}`,
@@ -81,6 +81,18 @@ export class AuthService {
             dataBefore: null,
             dataAfter: createdUser,
         });
+
+        if (createdRegistrationToken) {
+            await createAuditLog({
+                userId: createdUser.id,
+                entityName: ENTITIES.REGISTRATION_TOKEN,
+                entityId: createdRegistrationToken.id,
+                action: ACTIONS.CREATE,
+                operationStatus: OperationStatus.SUCCESS,
+                dataBefore: null,
+                dataAfter: createdRegistrationToken,
+            });
+        }
 
         await MailingService.sendAccountVerificationMail({
             to: userData.email,

@@ -9,8 +9,9 @@ const healthDocs = require('./src/modules/health/docs/health.docs');
 const warehouseDocs = require('./src/modules/warehouse/docs/warehouse.docs');
 const commonDocs = require('./src/swagger/docs/common.docs');
 const bolmaDocs = require('./src/modules/integrations/bolma/docs/bolma.docs');
+const auditLogDocs = require('./src/modules/auditLog/docs/auditLog.docs');
 
-const moduleDocs = [commonDocs, authDocs, healthDocs, departmentDocs, warehouseDocs, bolmaDocs];
+const moduleDocs = [commonDocs, authDocs, healthDocs, departmentDocs, warehouseDocs, bolmaDocs, auditLogDocs];
 const documentedPaths = Object.assign({}, ...moduleDocs.map(({ paths = {} }) => paths));
 
 const doc = {

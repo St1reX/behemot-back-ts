@@ -112,6 +112,7 @@ model Log {
   @@index([userId])
   @@index([entityName, entityId])
   @@index([isSuspicious])
+  @@index([createdAt, id])
 }
 
 model User {

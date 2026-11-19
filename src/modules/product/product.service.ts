@@ -75,7 +75,24 @@ export class ProductService {
         const existingProduct = await this.getProduct(productId);
         const deletedAt = new Date();
 
-        await ProductRepository.softDeleteWithRelations(productId, deletedAt);
+        const { fitments, crossReferences } = await ProductRepository.softDeleteWithRelations(productId, deletedAt);
+
+        for (const [entityName, records] of [
+            [ENTITIES.PRODUCT_FITMENT, fitments],
+            [ENTITIES.PRODUCT_CROSS_REFERENCE, crossReferences],
+        ] as const) {
+            for (const record of records) {
+                await createAuditLog({
+                    entityName,
+                    entityId: record.id,
+                    action: ACTIONS.DELETE,
+                    operationStatus: OperationStatus.SUCCESS,
+                    comment: `Usunięto wraz z produktem ${existingProduct.sku} (${productId}).`,
+                    dataBefore: record,
+                    dataAfter: null,
+                });
+            }
+        }
 
         await createAuditLog({
             entityName: ENTITIES.PRODUCT,

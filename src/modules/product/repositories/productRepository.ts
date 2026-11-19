@@ -149,26 +149,28 @@ export class ProductRepository {
     }
 
     static softDeleteWithRelations(productId: string, deletedAt: Date) {
-        return prisma.$transaction([
-            prisma.productFitment.updateMany({
+        return prisma.$transaction(async (tx) => {
+            const fitments = await tx.productFitment.findMany({ where: { productId, deletedAt: null } });
+            const crossReferences = await tx.productCrossReference.findMany({ where: { productId, deletedAt: null } });
+            await tx.productFitment.updateMany({
                 where: {
-                    productId,
+                    id: { in: fitments.map((fitment) => fitment.id) },
                     deletedAt: null,
                 },
                 data: {
                     deletedAt,
                 },
-            }),
-            prisma.productCrossReference.updateMany({
+            });
+            await tx.productCrossReference.updateMany({
                 where: {
-                    productId,
+                    id: { in: crossReferences.map((reference) => reference.id) },
                     deletedAt: null,
                 },
                 data: {
                     deletedAt,
                 },
-            }),
-            prisma.product.update({
+            });
+            await tx.product.update({
                 where: {
                     id: productId,
                     deletedAt: null,
@@ -176,8 +178,9 @@ export class ProductRepository {
                 data: {
                     deletedAt,
                 },
-            }),
-        ]);
+            });
+            return { fitments, crossReferences };
+        });
     }
 
     static findActiveWarehouse(productData: CreateProductDTO | UpdateProductDTO) {
