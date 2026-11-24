@@ -30,6 +30,10 @@
     {
       "name": "Bolma",
       "description": "Internal product catalog integration."
+    },
+    {
+      "name": "Users",
+      "description": "User management. Requires corresponding USER privileges."
     }
   ],
   "paths": {
@@ -843,6 +847,399 @@
           }
         }
       }
+    },
+    "/user": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "List users that have not been deleted",
+        "responses": {
+          "200": {
+            "description": "Users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManagedUser"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Create an account with an administrator-provided password",
+        "description": "Active accounts can log in immediately. No verification email is sent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 25
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "roleId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "departmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "writeOnly": true
+                  }
+                },
+                "required": [
+                  "username",
+                  "email",
+                  "roleId",
+                  "departmentId",
+                  "isActive",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      }
+    },
+    "/user/form-options": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "List available roles and departments for the user editor",
+        "description": "Requires USER:CREATE or USER:UPDATE.",
+        "responses": {
+          "200": {
+            "description": "Editor options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "departments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "summary": "Get a user",
+        "responses": {
+          "200": {
+            "description": "User.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "summary": "Update user data, role, department and status",
+        "description": "Cannot change own role or deactivate own account. Password is not changed. Status or email changes invalidate pending verification links; saving an inactive account also invalidates its pending links.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 25
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "roleId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "departmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "username",
+                  "email",
+                  "roleId",
+                  "departmentId",
+                  "isActive"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "summary": "Soft delete a user",
+        "description": "Cannot delete own account. The email and username remain reserved.",
+        "responses": {
+          "200": {
+            "description": "User deleted."
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Insufficient privileges or forbidden own-account operation."
+          },
+          "404": {
+            "description": "User, role or department not found."
+          },
+          "409": {
+            "description": "Email or username already reserved, including soft-deleted accounts."
+          },
+          "422": {
+            "description": "Invalid request data."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1271,6 +1668,77 @@
           "status",
           "components"
         ]
+      },
+      "ManagedUser": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 25
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "departmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "department": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
   }

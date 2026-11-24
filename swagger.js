@@ -11,8 +11,9 @@ const commonDocs = require('./src/swagger/docs/common.docs');
 const bolmaDocs = require('./src/modules/integrations/bolma/docs/bolma.docs');
 const auditLogDocs = require('./src/modules/auditLog/docs/auditLog.docs');
 const roleDocs = require('./src/modules/role/docs/role.docs');
+const userDocs = require('./src/modules/user/docs/user.docs');
 
-const moduleDocs = [commonDocs, authDocs, healthDocs, departmentDocs, warehouseDocs, bolmaDocs, auditLogDocs, roleDocs];
+const moduleDocs = [commonDocs, authDocs, healthDocs, departmentDocs, warehouseDocs, bolmaDocs, auditLogDocs, roleDocs, userDocs];
 const documentedPaths = Object.assign({}, ...moduleDocs.map(({ paths = {} }) => paths));
 
 const doc = {
