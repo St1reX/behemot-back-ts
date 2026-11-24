@@ -1,6 +1,19 @@
+const { object, uuid, text, namedRelation, response, ref } = require('../../../swagger/docs/crudDocs');
+
 module.exports = {
   tags: [{ name: 'Auth', description: 'Authentication and account verification.' }],
   schemas: {
+    RegisteredUser: object({
+      id: uuid, email: { ...text, format: 'email' }, username: text,
+      profilePictureUrl: { ...text, nullable: true },
+      role: object({
+        ...namedRelation.properties,
+        createdAt: { ...text, format: 'date-time' }, updatedAt: { ...text, format: 'date-time' },
+        deletedAt: { ...text, format: 'date-time', nullable: true },
+      }),
+      isActive: { type: 'boolean' },
+      createdAt: { ...text, format: 'date-time' }, updatedAt: { ...text, format: 'date-time' },
+    }),
     AuthenticatedUser: {
       type: 'object',
       properties: {
@@ -68,6 +81,7 @@ module.exports = {
       post: {
         tags: ['Auth'],
         summary: 'Log in with username and password',
+        description: 'Guest only. Creates a session cookie; no access token is returned. Inactive accounts and accounts with deleted roles cannot log in.',
         requestBody: {
           required: true,
           content: {
@@ -99,7 +113,7 @@ module.exports = {
             },
           },
           401: {
-            description: 'Invalid credentials.',
+            description: 'Invalid credentials, inactive account or deleted role.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -114,6 +128,7 @@ module.exports = {
               },
             },
           },
+          403: response('An authenticated session already exists.', ref('ErrorResponse')),
         },
       },
     },
@@ -121,6 +136,7 @@ module.exports = {
       post: {
         tags: ['Auth'],
         summary: 'Register a user account',
+        description: 'Guest only. Creates an inactive account with the default user role and sends a verification link valid for 24 hours.',
         requestBody: {
           required: true,
           content: {
@@ -138,7 +154,8 @@ module.exports = {
           },
         },
         responses: {
-          201: { description: 'User account created.' },
+          201: response('Inactive user account created.', ref('RegisteredUser')),
+          403: response('An authenticated session already exists.', ref('ErrorResponse')),
           409: {
             description: 'Email or username is already in use.',
             content: {
@@ -162,6 +179,7 @@ module.exports = {
       post: {
         tags: ['Auth'],
         summary: 'Resend the account verification email',
+        description: 'Guest only. Returns the same message for missing, active or ineligible accounts. Eligible inactive accounts can request a resend once every 10 minutes.',
         requestBody: {
           required: true,
           content: {
@@ -177,7 +195,8 @@ module.exports = {
           },
         },
         responses: {
-          200: { description: 'Request processed.' },
+          200: response('Request processed.', ref('MessageResponse')),
+          403: response('An authenticated session already exists.', ref('ErrorResponse')),
           429: {
             description: 'Verification email resend cooldown is active.',
             content: {
@@ -210,7 +229,7 @@ module.exports = {
           },
         ],
         responses: {
-          200: { description: 'Account verified.' },
+          200: response('Account verified.', ref('MessageResponse')),
           400: {
             description: 'Verification token is invalid or expired.',
             content: {
@@ -227,6 +246,16 @@ module.exports = {
               },
             },
           },
+        },
+      },
+    },
+    '/auth/logout': {
+      post: {
+        tags: ['Auth'], summary: 'Log out and destroy the current session',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: response('Session destroyed and session cookie cleared.', ref('MessageResponse')),
+          401: response('Authentication required.', ref('ErrorResponse')),
         },
       },
     },

@@ -1,13 +1,22 @@
+const { object, response, ref } = require('../../../swagger/docs/crudDocs');
+
 module.exports = {
   tags: [{ name: 'Health', description: 'Service health checks.' }],
   schemas: {
     HealthStatus: {
       type: 'object',
       properties: {
-        status: { type: 'string', enum: ['ok', 'error'] },
+        status: { type: 'string', enum: ['ok'] },
       },
       required: ['status'],
     },
+    ReadinessStatus: object({
+      status: { type: 'string', enum: ['ok', 'error'] },
+      components: object({
+        database: { type: 'string', enum: ['ok', 'error'] },
+        redis: { type: 'string', enum: ['ok', 'error'] },
+      }),
+    }),
   },
   paths: {
     '/health/live': {
@@ -31,8 +40,8 @@ module.exports = {
         tags: ['Health'],
         summary: 'Check whether API dependencies are available',
         responses: {
-          200: { description: 'API dependencies are available.' },
-          500: { description: 'At least one API dependency is unavailable.' },
+          200: response('API dependencies are available.', ref('ReadinessStatus')),
+          500: response('At least one API dependency is unavailable.', ref('ReadinessStatus')),
         },
       },
     },

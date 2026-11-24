@@ -22,6 +22,7 @@ const userSchema = {
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
+  required: ['id', 'username', 'email', 'roleId', 'role', 'isActive', 'createdAt', 'updatedAt'],
 };
 const common = {
   tags: ['Users'],
@@ -66,6 +67,7 @@ module.exports = {
           type: 'object', properties: {
             roles: { type: 'array', items: optionSchema },
           },
+          required: ['roles'],
         }) } },
       },
     },
@@ -83,7 +85,7 @@ module.exports = {
       delete: {
         ...common, parameters: [idParameter], summary: 'Soft delete a user',
         description: 'Cannot delete own account. The email and username remain reserved.',
-        responses: { ...errors, 200: { description: 'User deleted.' } },
+        responses: { ...errors, 200: { description: 'User deleted.', content: json({ $ref: '#/components/schemas/MessageResponse' }) } },
       },
     },
   },

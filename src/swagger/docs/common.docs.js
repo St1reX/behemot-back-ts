@@ -3,10 +3,15 @@ module.exports = {
     cookieAuth: {
       type: 'apiKey',
       in: 'cookie',
-      name: 'connect.sid',
+      name: 'behemot-api-sid',
     },
   },
   schemas: {
+    MessageResponse: {
+      type: 'object',
+      properties: { message: { type: 'string' } },
+      required: ['message'],
+    },
     ErrorResponse: {
       type: 'object',
       properties: {

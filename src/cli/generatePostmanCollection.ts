@@ -35,12 +35,7 @@ type PostmanRequest = {
         };
     };
     auth: {
-        type: 'bearer' | 'noauth';
-        bearer?: Array<{
-            key: string;
-            value: string;
-            type: 'string';
-        }>;
+        type: 'noauth';
     };
 };
 
@@ -68,6 +63,7 @@ type PostmanCollection = {
     info: {
         name: string;
         schema: string;
+        description: string;
     };
     item: PostmanFolder[];
     variable: PostmanVariable[];
@@ -134,6 +130,11 @@ const requestBodies: Record<string, ModuleRequestBodies> = {
         },
     },
     productListingTemplate: {
+        'POST /product-listing-template/preview': {
+            titleTemplate: '{{customName}}',
+            summaryTemplate: '<p>{{producer}} | SKU: {{sku}}</p>',
+            descriptionTemplate: '<p>{{customName}}</p>',
+        },
         default: {
             name: 'Universal shop product template',
             titleTemplate: '{{customName}}',
@@ -193,11 +194,20 @@ const requestBodies: Record<string, ModuleRequestBodies> = {
             privilegeIds: ['{{privilegeId}}'],
         },
     },
+    user: {
+        'POST /user': {
+            username: 'managedUser', email: 'managed-user@example.com', password: 'password123',
+            roleId: '{{roleId}}', isActive: true,
+        },
+        'PUT /user/:id': {
+            username: 'managedUser', email: 'managed-user@example.com',
+            roleId: '{{roleId}}', isActive: true,
+        },
+    },
 };
 
 const collectionVariables: PostmanVariable[] = [
     { key: 'baseUrl', value: `${apiUrl}:${apiPort}` },
-    { key: 'accessToken', value: '' },
     { key: 'id', value: '' },
     { key: 'departmentId', value: '' },
     { key: 'warehouseId', value: '' },
@@ -213,6 +223,8 @@ const collectionVariables: PostmanVariable[] = [
     { key: 'verificationToken', value: '' },
     { key: 'roleId', value: '' },
     { key: 'privilegeId', value: '' },
+    { key: 'userId', value: '' },
+    { key: 'auditLogId', value: '' },
 ];
 
 const createdResourceIdVariables: Record<string, string> = {
@@ -228,6 +240,8 @@ const createdResourceIdVariables: Record<string, string> = {
     productFitment: 'productFitmentId',
     productCrossReference: 'productCrossReferenceId',
     role: 'roleId',
+    user: 'userId',
+    auditLog: 'auditLogId',
 };
 
 function findProjectRoot(startPath: string): string {
@@ -321,15 +335,7 @@ function getRequestBody(
     return ['POST', 'PUT', 'PATCH'].includes(method) ? moduleBodies.default || null : null;
 }
 
-function shouldUseBearerAuth(moduleName: string, method: HttpMethod, apiPath: string): boolean {
-    if (moduleName !== 'auth') {
-        return true;
-    }
-
-    return method === 'POST' && apiPath === '/auth/logout';
-}
-
-function buildTestEvent(moduleName: string, method: HttpMethod): PostmanEvent {
+function buildTestEvent(moduleName: string, method: HttpMethod, apiPath: string): PostmanEvent {
     const scriptLines = [
         "pm.test('Response status is successful', function () {",
         '    pm.expect(pm.response.code).to.be.within(200, 299);',
@@ -337,7 +343,7 @@ function buildTestEvent(moduleName: string, method: HttpMethod): PostmanEvent {
     ];
     const resourceIdVariable = createdResourceIdVariables[moduleName];
 
-    if (method === 'POST' && resourceIdVariable) {
+    if (method === 'POST' && resourceIdVariable && apiPath === `/${toKebabCase(moduleName)}`) {
         scriptLines.push(
             '',
             'if (pm.response.code >= 200 && pm.response.code < 300) {',
@@ -404,24 +410,11 @@ function buildRequestItem(moduleName: string, method: HttpMethod, apiPath: strin
         };
     }
 
-    if (shouldUseBearerAuth(moduleName, method, apiPath)) {
-        request.auth = {
-            type: 'bearer',
-            bearer: [
-                {
-                    key: 'token',
-                    value: '{{accessToken}}',
-                    type: 'string',
-                },
-            ],
-        };
-    }
-
     return {
         name: `${method} ${apiPath}`,
         request,
         response: [],
-        event: [buildTestEvent(moduleName, method)],
+        event: [buildTestEvent(moduleName, method, apiPath)],
     };
 }
 
@@ -430,7 +423,7 @@ function buildCollection(modulesPath: string): PostmanCollection {
 
     const folders = routeFiles.map((routeFile) => {
         const moduleName = path.basename(path.dirname(routeFile));
-        const modulePath = toKebabCase(moduleName);
+        const modulePath = path.relative(modulesPath, path.dirname(routeFile)).split(path.sep).map(toKebabCase).join('/');
         const fileContent = fs.readFileSync(routeFile, 'utf8');
         const routes: PostmanItem[] = [];
         let match: RegExpExecArray | null;
@@ -451,10 +444,13 @@ function buildCollection(modulesPath: string): PostmanCollection {
         };
     });
 
+    folders.push({ name: 'operations', item: [buildRequestItem('operations', 'GET', '/metrics')] });
+
     return {
         info: {
             name: 'Behemot API',
             schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+            description: 'Log in using POST /auth/login. Postman must retain and send the behemot-api-sid session cookie using its cookie jar. The API does not accept Bearer tokens. Set resource ID variables before using dependent requests. Product listing placeholders such as {{customName}} are literal template syntax; leave those Postman variables undefined.',
         },
         item: folders.filter((folder) => folder.item.length > 0),
         variable: collectionVariables,

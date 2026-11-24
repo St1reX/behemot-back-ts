@@ -1,12 +1,127 @@
 {
     "info": {
         "name": "Behemot API",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Log in using POST /auth/login. Postman must retain and send the behemot-api-sid session cookie using its cookie jar. The API does not accept Bearer tokens. Set resource ID variables before using dependent requests. Product listing placeholders such as {{customName}} are literal template syntax; leave those Postman variables undefined."
     },
     "item": [
         {
+            "name": "audit-log",
+            "item": [
+                {
+                    "name": "GET /audit-log",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/audit-log",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "audit-log"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GET /audit-log/:id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/audit-log/{{auditLogId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "audit-log",
+                                "{{auditLogId}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "auditLogId",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "auth",
             "item": [
+                {
+                    "name": "GET /auth/me",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
                 {
                     "name": "POST /auth/login",
                     "request": {
@@ -73,14 +188,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -258,14 +366,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -305,14 +406,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -351,14 +445,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -417,14 +504,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -473,14 +553,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -519,14 +592,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -567,14 +633,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -614,14 +673,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -660,14 +712,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -726,14 +771,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -782,14 +820,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -828,14 +859,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -876,14 +900,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -923,14 +940,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -969,14 +979,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1035,14 +1038,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1091,14 +1087,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1137,14 +1126,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1184,14 +1166,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1230,14 +1205,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1296,14 +1264,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1352,14 +1313,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1398,14 +1352,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1445,14 +1392,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1491,14 +1431,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1557,14 +1490,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1613,14 +1539,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1660,14 +1579,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1702,14 +1614,48 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "integrations/bolma",
+            "item": [
+                {
+                    "name": "GET /integrations/bolma/status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/integrations/bolma/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "integrations",
+                                "bolma",
+                                "status"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1748,14 +1694,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1795,14 +1734,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -1841,14 +1773,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1907,14 +1832,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -1963,14 +1881,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2009,14 +1920,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2056,14 +1960,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2102,14 +1999,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2168,14 +2058,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2224,14 +2107,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2270,14 +2146,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2317,14 +2186,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2363,14 +2225,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2429,14 +2284,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2485,14 +2333,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2516,6 +2357,90 @@
             "name": "product-listing-template",
             "item": [
                 {
+                    "name": "GET /product-listing-template/placeholders",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/product-listing-template/placeholders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "product-listing-template",
+                                "placeholders"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "POST /product-listing-template/preview",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/product-listing-template/preview",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "product-listing-template",
+                                "preview"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"titleTemplate\": \"{{customName}}\",\n    \"summaryTemplate\": \"<p>{{producer}} | SKU: {{sku}}</p>\",\n    \"descriptionTemplate\": \"<p>{{customName}}</p>\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "GET /product-listing-template",
                     "request": {
                         "method": "GET",
@@ -2531,14 +2456,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2578,14 +2496,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2624,14 +2535,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2690,14 +2594,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2746,14 +2643,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2792,14 +2682,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2839,14 +2722,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -2885,14 +2761,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -2951,14 +2820,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -3007,14 +2869,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3053,14 +2908,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3095,14 +2943,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3142,14 +2983,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3188,18 +3022,11 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"custom_role\"\n}",
+                            "raw": "{\n    \"name\": \"custom_role\",\n    \"privilegeIds\": [\n        \"{{privilegeId}}\"\n    ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -3222,6 +3049,60 @@
                                     "    const response = pm.response.json();",
                                     "    pm.collectionVariables.set('roleId', response.id);",
                                     "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "PUT /role/:id",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/{{roleId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "role",
+                                "{{roleId}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "roleId",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"custom_role\",\n    \"privilegeIds\": [\n        \"{{privilegeId}}\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
                                 ]
                             }
                         }
@@ -3255,14 +3136,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -3283,12 +3157,7 @@
                                 "exec": [
                                     "pm.test('Response status is successful', function () {",
                                     "    pm.expect(pm.response.code).to.be.within(200, 299);",
-                                    "});",
-                                    "",
-                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.collectionVariables.set('roleId', response.id);",
-                                    "}"
+                                    "});"
                                 ]
                             }
                         }
@@ -3322,14 +3191,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -3378,14 +3240,268 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "user",
+            "item": [
+                {
+                    "name": "GET /user",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GET /user/form-options",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/form-options",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "form-options"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GET /user/:id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "{{userId}}"
+                            ],
+                            "variable": [
                                 {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
+                                    "key": "userId",
+                                    "value": ""
                                 }
                             ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "POST /user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/user",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"managedUser\",\n    \"email\": \"managed-user@example.com\",\n    \"password\": \"password123\",\n    \"roleId\": \"{{roleId}}\",\n    \"isActive\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});",
+                                    "",
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.collectionVariables.set('userId', response.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "PUT /user/:id",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "{{userId}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "userId",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"managedUser\",\n    \"email\": \"managed-user@example.com\",\n    \"roleId\": \"{{roleId}}\",\n    \"isActive\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "DELETE /user/:id",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "{{userId}}"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "userId",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3424,14 +3540,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3471,14 +3580,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3517,14 +3619,7 @@
                             "variable": []
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -3583,14 +3678,7 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
                         },
                         "body": {
                             "mode": "raw",
@@ -3639,14 +3727,46 @@
                             ]
                         },
                         "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{accessToken}}",
-                                    "type": "string"
-                                }
-                            ]
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Response status is successful', function () {",
+                                    "    pm.expect(pm.response.code).to.be.within(200, 299);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "operations",
+            "item": [
+                {
+                    "name": "GET /metrics",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/metrics",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "metrics"
+                            ],
+                            "variable": []
+                        },
+                        "auth": {
+                            "type": "noauth"
                         }
                     },
                     "response": [],
@@ -3671,10 +3791,6 @@
         {
             "key": "baseUrl",
             "value": "http://localhost:4000"
-        },
-        {
-            "key": "accessToken",
-            "value": ""
         },
         {
             "key": "id",
@@ -3734,6 +3850,14 @@
         },
         {
             "key": "privilegeId",
+            "value": ""
+        },
+        {
+            "key": "userId",
+            "value": ""
+        },
+        {
+            "key": "auditLogId",
             "value": ""
         }
     ]

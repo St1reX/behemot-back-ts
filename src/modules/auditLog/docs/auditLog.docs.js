@@ -15,6 +15,7 @@ const auditLogSchema = {
     suspiciousReason: { type: 'string', nullable: true },
     createdAt: { type: 'string', format: 'date-time' },
   },
+  required: ['id', 'userId', 'username', 'entityName', 'entityId', 'action', 'operationStatus', 'comment', 'sourceIp', 'requestId', 'isSuspicious', 'suspiciousReason', 'createdAt'],
 };
 
 const errorResponses = {
@@ -35,9 +36,13 @@ module.exports = {
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100000, default: 1 } },
           { name: 'pageSize', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 25 } },
-          ...['search', 'entityName', 'action', 'operationStatus'].map((name) => ({ name, in: 'query', schema: { type: 'string' } })),
+          { name: 'search', in: 'query', description: 'Search entity ID, user ID, username or comment, ignoring case. Trimmed before use.', schema: { type: 'string', maxLength: 100 } },
+          { name: 'entityName', in: 'query', schema: { type: 'string', enum: ['AUDIT_LOG', 'USER', 'REGISTRATION_TOKEN', 'ROLE', 'DEPARTMENT', 'WAREHOUSE', 'CONTRACTOR', 'PRODUCER', 'CAR_BRAND', 'CAR_MODEL', 'CAR_GENERATION', 'PRODUCT_LISTING_TEMPLATE', 'PRODUCT', 'PRODUCT_FITMENT', 'PRODUCT_CROSS_REFERENCE'] } },
+          { name: 'action', in: 'query', schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'READ'] } },
+          { name: 'operationStatus', in: 'query', schema: { type: 'string', enum: ['SUCCESS', 'FAILED', 'PENDING'] } },
           ...['from', 'to'].map((name) => ({ name, in: 'query', schema: { type: 'string', format: 'date-time' } })),
         ],
+        description: 'from and to accept ISO timestamps with a timezone offset; from must not be later than to. Both boundaries are inclusive.',
         responses: {
           ...errorResponses,
           200: {
@@ -48,6 +53,7 @@ module.exports = {
                 items: { type: 'array', items: { $ref: '#/components/schemas/AuditLog' } },
                 total: { type: 'integer' }, page: { type: 'integer' }, pageSize: { type: 'integer' },
               },
+              required: ['items', 'total', 'page', 'pageSize'],
             } } },
           },
         },
@@ -67,7 +73,10 @@ module.exports = {
             content: { 'application/json': { schema: {
               allOf: [
                 { $ref: '#/components/schemas/AuditLog' },
-                { type: 'object', properties: { dataBefore: { nullable: true }, dataAfter: { nullable: true } } },
+                { type: 'object', properties: {
+                  dataBefore: { description: 'Arbitrary JSON snapshot before the operation, including null.' },
+                  dataAfter: { description: 'Arbitrary JSON snapshot after the operation, including null.' },
+                }, required: ['dataBefore', 'dataAfter'] },
               ],
             } } },
           },
