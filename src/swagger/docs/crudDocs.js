@@ -66,7 +66,34 @@ function createCrudDocs({ path, name, tag, entity, body, properties, description
   };
 }
 
+function optionalPaginatedList({ name, tag, entity, parameters = [], searchDescription = 'Filter names (case-insensitive).' }) {
+  return {
+    get: {
+      tags: [tag], security: [{ cookieAuth: [] }], summary: `List records (${entity}:READ)`,
+      description: 'Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.',
+      parameters: [
+        ...parameters,
+        { name: 'page', in: 'query', description: 'Enables pagination. Defaults to 1 when only pageSize is supplied.', schema: { type: 'integer', minimum: 1, maximum: 100000 } },
+        { name: 'pageSize', in: 'query', description: 'Enables pagination. Defaults to 25 when only page is supplied.', schema: { type: 'integer', minimum: 1, maximum: 100 } },
+        { name: 'search', in: 'query', description: searchDescription, schema: { type: 'string', maxLength: 100 } },
+      ],
+      responses: {
+        401: errors[401], 403: errors[403], 404: errors[404], 422: errors[422],
+        200: response('The complete array, or a page of records with the filtered total.', { oneOf: [
+          { type: 'array', items: ref(name) },
+          object({
+            items: { type: 'array', items: ref(name) },
+            total: { type: 'integer', minimum: 0 },
+            page: { type: 'integer', minimum: 1 },
+            pageSize: { type: 'integer', minimum: 1, maximum: 100 },
+          }),
+        ] }),
+      },
+    },
+  };
+}
+
 module.exports = {
   uuid, text, object, ref, json, response, idParameter, errors, namedRelation, productRelation,
-  departmentRelation, carModelRelation, carGenerationRelation, createCrudDocs,
+  departmentRelation, carModelRelation, carGenerationRelation, createCrudDocs, optionalPaginatedList,
 };

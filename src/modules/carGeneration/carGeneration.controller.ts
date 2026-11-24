@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
+import { parsePaginationQuery } from '../../shared/schema/pagination.schema';
+import { PaginatedResponse } from '../../shared/types/pagination.types';
 import {
     CarGenerationIdSchema,
     CarModelIdParamSchema,
@@ -14,11 +16,12 @@ import {
 export class CarGenerationController {
     static async getCarGenerations(
         req: Request,
-        res: Response<CarGenerationResponse[]>,
+        res: Response<CarGenerationResponse[] | PaginatedResponse<CarGenerationResponse>>,
         next: NextFunction,
     ) {
         try {
-            const result = await CarGenerationService.getCarGenerations();
+            const query = parsePaginationQuery(req.query);
+            const result = await CarGenerationService.getCarGenerations(query);
 
             res.status(200).json(result);
         } catch (error) {
@@ -46,13 +49,14 @@ export class CarGenerationController {
 
     static async getCarGenerationsByCarModel(
         req: Request,
-        res: Response<CarGenerationResponse[]>,
+        res: Response<CarGenerationResponse[] | PaginatedResponse<CarGenerationResponse>>,
         next: NextFunction,
     ) {
         try {
             const { carModelId } = CarModelIdParamSchema.parse(req.params);
 
-            const result = await CarGenerationService.getCarGenerationsByCarModel(carModelId);
+            const query = parsePaginationQuery(req.query);
+            const result = await CarGenerationService.getCarGenerationsByCarModel(carModelId, query);
 
             res.status(200).json(result);
         } catch (error) {

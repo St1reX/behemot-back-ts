@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
+import { parsePaginationQuery } from '../../shared/schema/pagination.schema';
+import { PaginatedResponse } from '../../shared/types/pagination.types';
 import {
     CarBrandIdSchema,
     CreateCarBrandSchema,
@@ -10,11 +12,12 @@ import { CarBrandResponse, DeleteCarBrandResponse } from './types/carBrand.types
 export class CarBrandController {
     static async getCarBrands(
         req: Request,
-        res: Response<CarBrandResponse[]>,
+        res: Response<CarBrandResponse[] | PaginatedResponse<CarBrandResponse>>,
         next: NextFunction,
     ) {
         try {
-            const result = await CarBrandService.getCarBrands();
+            const query = parsePaginationQuery(req.query);
+            const result = await CarBrandService.getCarBrands(query);
 
             res.status(200).json(result);
         } catch (error) {

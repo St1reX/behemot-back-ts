@@ -1,4 +1,6 @@
 import { OperationStatus } from '@prisma/client';
+import { PaginatedListQuery } from '../../shared/schema/pagination.schema';
+import { PaginatedResponse } from '../../shared/types/pagination.types';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
@@ -8,14 +10,22 @@ import { CreateCarModelDTO, UpdateCarModelDTO } from './schemas/carModel.schema'
 import { CarModelResponse, DeleteCarModelResponse } from './types/carModel.types';
 
 export class CarModelService {
-    static async getCarModels(): Promise<CarModelResponse[]> {
-        return CarModelRepository.findAll();
+    static async getCarModels(query?: PaginatedListQuery): Promise<CarModelResponse[] | PaginatedResponse<CarModelResponse>> {
+        if (!query) return CarModelRepository.findAll();
+
+        const { items, total } = await CarModelRepository.findPage(query);
+        return { items, total, page: query.page, pageSize: query.pageSize };
     }
 
-    static async getCarModelsByCarBrand(carBrandId: string): Promise<CarModelResponse[]> {
+    static async getCarModelsByCarBrand(
+        carBrandId: string,
+        query?: PaginatedListQuery,
+    ): Promise<CarModelResponse[] | PaginatedResponse<CarModelResponse>> {
         await this.ensureCarBrandExists(carBrandId);
+        if (!query) return CarModelRepository.findByCarBrand(carBrandId);
 
-        return CarModelRepository.findByCarBrand(carBrandId);
+        const { items, total } = await CarModelRepository.findPage(query, carBrandId);
+        return { items, total, page: query.page, pageSize: query.pageSize };
     }
 
     static async getCarModel(carModelId: string): Promise<CarModelResponse> {

@@ -1,4 +1,6 @@
 import { OperationStatus } from '@prisma/client';
+import { PaginatedListQuery } from '../../shared/schema/pagination.schema';
+import { PaginatedResponse } from '../../shared/types/pagination.types';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
@@ -8,8 +10,11 @@ import { CreateCarBrandDTO, UpdateCarBrandDTO } from './schemas/carBrand.schema'
 import { CarBrandResponse, DeleteCarBrandResponse } from './types/carBrand.types';
 
 export class CarBrandService {
-    static async getCarBrands(): Promise<CarBrandResponse[]> {
-        return CarBrandRepository.findAll();
+    static async getCarBrands(query?: PaginatedListQuery): Promise<CarBrandResponse[] | PaginatedResponse<CarBrandResponse>> {
+        if (!query) return CarBrandRepository.findAll();
+
+        const { items, total } = await CarBrandRepository.findPage(query);
+        return { items, total, page: query.page, pageSize: query.pageSize };
     }
 
     static async getCarBrand(carBrandId: string): Promise<CarBrandResponse> {

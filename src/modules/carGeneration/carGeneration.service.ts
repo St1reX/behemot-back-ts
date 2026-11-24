@@ -1,4 +1,6 @@
 import { OperationStatus } from '@prisma/client';
+import { PaginatedListQuery } from '../../shared/schema/pagination.schema';
+import { PaginatedResponse } from '../../shared/types/pagination.types';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
@@ -14,16 +16,22 @@ import {
 } from './types/carGeneration.types';
 
 export class CarGenerationService {
-    static async getCarGenerations(): Promise<CarGenerationResponse[]> {
-        return CarGenerationRepository.findAll();
+    static async getCarGenerations(query?: PaginatedListQuery): Promise<CarGenerationResponse[] | PaginatedResponse<CarGenerationResponse>> {
+        if (!query) return CarGenerationRepository.findAll();
+
+        const { items, total } = await CarGenerationRepository.findPage(query);
+        return { items, total, page: query.page, pageSize: query.pageSize };
     }
 
     static async getCarGenerationsByCarModel(
         carModelId: string,
-    ): Promise<CarGenerationResponse[]> {
+        query?: PaginatedListQuery,
+    ): Promise<CarGenerationResponse[] | PaginatedResponse<CarGenerationResponse>> {
         await this.ensureCarModelExists(carModelId);
+        if (!query) return CarGenerationRepository.findByCarModel(carModelId);
 
-        return CarGenerationRepository.findByCarModel(carModelId);
+        const { items, total } = await CarGenerationRepository.findPage(query, carModelId);
+        return { items, total, page: query.page, pageSize: query.pageSize };
     }
 
     static async getCarGeneration(carGenerationId: string): Promise<CarGenerationResponse> {

@@ -1,4 +1,6 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../../config/database';
+import { PaginatedListQuery } from '../../../shared/schema/pagination.schema';
 import { CreateCarModelDTO, UpdateCarModelDTO } from '../schemas/carModel.schema';
 
 const carModelSelect = {
@@ -15,6 +17,26 @@ const carModelSelect = {
 };
 
 export class CarModelRepository {
+    static async findPage(query: PaginatedListQuery, carBrandId?: string) {
+        const where: Prisma.CarModelWhereInput = {
+            carBrandId,
+            deletedAt: null,
+            carBrand: { deletedAt: null },
+            ...(query.search ? { name: { contains: query.search, mode: 'insensitive' } } : {}),
+        };
+        const [items, total] = await prisma.$transaction([
+            prisma.carModel.findMany({
+                where,
+                select: carModelSelect,
+                orderBy: [{ carBrand: { name: 'asc' } }, { name: 'asc' }, { id: 'asc' }],
+                skip: (query.page - 1) * query.pageSize,
+                take: query.pageSize,
+            }),
+            prisma.carModel.count({ where }),
+        ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+        return { items, total };
+    }
+
     static findAll() {
         return prisma.carModel.findMany({
             where: {

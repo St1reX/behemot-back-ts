@@ -1,4 +1,6 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../../config/database';
+import { PaginatedListQuery } from '../../../shared/schema/pagination.schema';
 import {
     CreateCarGenerationDTO,
     UpdateCarGenerationDTO,
@@ -25,6 +27,43 @@ const carGenerationSelect = {
 };
 
 export class CarGenerationRepository {
+    static async findPage(query: PaginatedListQuery, carModelId?: string) {
+        let searchFilter: Prisma.CarGenerationWhereInput = {};
+        if (query.search?.toLocaleLowerCase('pl-PL') === 'obecnie') {
+            searchFilter = { endProduction: null };
+        } else if (query.search) {
+            const productionYear = Number(query.search);
+            if (!/^\d+$/.test(query.search) || !Number.isInteger(productionYear)
+                || productionYear < 1886 || productionYear > 2147483647) {
+                return { items: [], total: 0 };
+            }
+            searchFilter = { OR: [{ startProduction: productionYear }, { endProduction: productionYear }] };
+        }
+
+        const where: Prisma.CarGenerationWhereInput = {
+            carModelId,
+            deletedAt: null,
+            carModel: { deletedAt: null, carBrand: { deletedAt: null } },
+            ...searchFilter,
+        };
+        const [items, total] = await prisma.$transaction([
+            prisma.carGeneration.findMany({
+                where,
+                select: carGenerationSelect,
+                orderBy: [
+                    { carModel: { carBrand: { name: 'asc' } } },
+                    { carModel: { name: 'asc' } },
+                    { startProduction: 'desc' },
+                    { id: 'asc' },
+                ],
+                skip: (query.page - 1) * query.pageSize,
+                take: query.pageSize,
+            }),
+            prisma.carGeneration.count({ where }),
+        ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+        return { items, total };
+    }
+
     static findAll() {
         return prisma.carGeneration.findMany({
             where: {

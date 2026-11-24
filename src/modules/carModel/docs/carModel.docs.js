@@ -1,4 +1,4 @@
-const { createCrudDocs, object, text, uuid, namedRelation, idParameter, errors, response, ref } = require('../../../swagger/docs/crudDocs');
+const { createCrudDocs, object, text, uuid, namedRelation, idParameter, optionalPaginatedList } = require('../../../swagger/docs/crudDocs');
 
 const docs = createCrudDocs({
   path: '/car-model', name: 'CarModel', tag: 'Car models', entity: 'CAR_MODEL',
@@ -6,11 +6,9 @@ const docs = createCrudDocs({
   properties: { name: text, carBrand: namedRelation },
   deleteDescription: 'A model with non-deleted generations cannot be deleted.',
 });
-docs.paths['/car-model/brand/{carBrandId}'] = {
-  get: {
-    tags: ['Car models'], security: [{ cookieAuth: [] }], summary: 'List models of a brand (CAR_MODEL:READ)',
-    parameters: [idParameter('carBrandId')],
-    responses: { ...errors, 200: response('Models of the selected non-deleted brand.', { type: 'array', items: ref('CarModel') }) },
-  },
-};
+
+docs.paths['/car-model'].get = optionalPaginatedList({ name: 'CarModel', tag: 'Car models', entity: 'CAR_MODEL' }).get;
+docs.paths['/car-model/brand/{carBrandId}'] = optionalPaginatedList({
+  name: 'CarModel', tag: 'Car models', entity: 'CAR_MODEL', parameters: [idParameter('carBrandId')],
+});
 module.exports = docs;

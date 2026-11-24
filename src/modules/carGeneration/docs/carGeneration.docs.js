@@ -1,4 +1,4 @@
-const { createCrudDocs, object, uuid, carModelRelation, idParameter, errors, response, ref } = require('../../../swagger/docs/crudDocs');
+const { createCrudDocs, object, uuid, carModelRelation, idParameter, optionalPaginatedList } = require('../../../swagger/docs/crudDocs');
 
 const docs = createCrudDocs({
   path: '/car-generation', name: 'CarGeneration', tag: 'Car generations', entity: 'CAR_GENERATION',
@@ -11,11 +11,13 @@ const docs = createCrudDocs({
   description: 'endProduction must be null or greater than or equal to startProduction.',
   deleteDescription: 'A generation referenced by a non-deleted product fitment cannot be deleted.',
 });
-docs.paths['/car-generation/model/{carModelId}'] = {
-  get: {
-    tags: ['Car generations'], security: [{ cookieAuth: [] }], summary: 'List generations of a model (CAR_GENERATION:READ)',
-    parameters: [idParameter('carModelId')],
-    responses: { ...errors, 200: response('Generations of the selected non-deleted model.', { type: 'array', items: ref('CarGeneration') }) },
-  },
-};
+
+const searchDescription = 'Exact start or end production year, or "obecnie" for ongoing production.';
+docs.paths['/car-generation'].get = optionalPaginatedList({
+  name: 'CarGeneration', tag: 'Car generations', entity: 'CAR_GENERATION', searchDescription,
+}).get;
+docs.paths['/car-generation/model/{carModelId}'] = optionalPaginatedList({
+  name: 'CarGeneration', tag: 'Car generations', entity: 'CAR_GENERATION', parameters: [idParameter('carModelId')],
+  searchDescription,
+});
 module.exports = docs;
