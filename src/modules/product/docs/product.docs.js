@@ -1,16 +1,28 @@
-const { createCrudDocs, object, text, uuid, namedRelation, departmentRelation, carGenerationRelation } = require('../../../swagger/docs/crudDocs');
+const { createCrudDocs, object, text, uuid, namedRelation, departmentRelation, carModelRelation, carGenerationRelation } = require('../../../swagger/docs/crudDocs');
 
 const decimal = { type: 'number', minimum: 0, maximum: 9999.99, multipleOf: 0.01 };
 const dimension = { ...decimal, exclusiveMinimum: true };
 // Prisma.Decimal.toJSON() returns a string; request bodies require JSON numbers.
 const decimalResponse = { type: 'string', example: '34.99', description: 'Decimal serialized as a JSON string.' };
-const fitment = object({ id: uuid, isPrimary: { type: 'boolean' }, carGeneration: carGenerationRelation });
+const fitment = object({
+  id: uuid, isPrimary: { type: 'boolean' },
+  carBrand: { ...namedRelation, nullable: true },
+  carModel: { ...carModelRelation, nullable: true },
+  carGeneration: { ...carGenerationRelation, nullable: true },
+});
+const fitmentInput = object({
+  id: uuid, carBrandId: { ...uuid, nullable: true }, carModelId: { ...uuid, nullable: true },
+  carGenerationId: { ...uuid, nullable: true }, isPrimary: { type: 'boolean' },
+});
+fitmentInput.required = ['isPrimary'];
 const body = object({
   imagesUrls: { type: 'array', items: { ...text, format: 'uri' } },
   descriptionImagesUrls: { type: 'array', items: { ...text, format: 'uri' } },
   price: decimal,
   quantity: { type: 'integer', minimum: 0 },
   customName: { ...text, minLength: 1, maxLength: 255, nullable: true },
+  customSummary: { ...text, nullable: true },
+  customDescription: { ...text, nullable: true },
   internalNote: { ...text, nullable: true },
   side: { ...text, enum: ['LEFT', 'RIGHT', 'BOTH', 'NONE'] },
   weight: dimension, length: dimension, width: dimension, height: { ...dimension, nullable: true },
@@ -18,7 +30,9 @@ const body = object({
   oem: { type: 'array', items: { ...text, minLength: 1 } },
   warehouseLocation: { ...text, minLength: 1 },
   warehouseId: uuid, listingTemplateId: uuid, departmentId: uuid, producerId: uuid,
+  productFitments: { type: 'array', items: fitmentInput, description: 'Optional full replacement of fitments, saved atomically with the product. Keep IDs of existing fitments. A non-empty list must have exactly one primary fitment.' },
 });
+body.required = body.required.filter((field) => !['customSummary', 'customDescription', 'productFitments'].includes(field));
 const fields = { ...body.properties };
 for (const field of ['warehouseId', 'listingTemplateId', 'departmentId', 'producerId']) {
   delete fields[field];
@@ -34,7 +48,12 @@ module.exports = createCrudDocs({
     description: { ...text, nullable: true }, listingContentError: { ...text, nullable: true },
     warehouse: namedRelation, listingTemplate: namedRelation, department: departmentRelation, producer: namedRelation,
     primaryFitment: { ...fitment, nullable: true }, productFitments: { type: 'array', items: fitment },
+    externalListings: { type: 'array', items: object({
+      id: uuid, channel: { ...text, enum: ['ALLEGRO', 'BASELINKER', 'PRESTASHOP'] },
+      externalId: { ...text, nullable: true }, syncStatus: { ...text, enum: ['PENDING', 'SYNCED', 'FAILED'] },
+      lastSyncedAt: { ...text, format: 'date-time', nullable: true }, lastError: { ...text, nullable: true },
+    }) },
   },
-  description: 'The listing template must belong to the selected department. SKU and non-null EAN must be available. Listing content is rendered from the template; rendering failures are returned in listingContentError. Updating a product queues listing synchronization.',
+  description: 'The listing template must belong to the selected department. Active products have unique SKU; EAN may repeat. Fitments may specify only a brand, a model or a generation; parent IDs are normalized and validated. Removing a fitment linked to an active external listing is forbidden. Listing content is rendered from the template, with optional custom summary and description; rendering failures are returned in listingContentError. Updating a product queues listing synchronization.',
   deleteDescription: 'Soft deletes the product together with its non-deleted fitments and cross-references.',
 });

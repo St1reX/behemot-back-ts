@@ -115,6 +115,10 @@ export class CarModelRepository {
         });
     }
 
+    static countAssignedFitments(carModelId: string) {
+        return prisma.productFitment.count({ where: { carModelId, deletedAt: null, product: { deletedAt: null } } });
+    }
+
     static softDelete(carModelId: string) {
         return prisma.carModel.update({
             where: {

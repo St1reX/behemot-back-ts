@@ -1,3 +1,4 @@
+import { validateProductFitments } from '../validateProductFitments';
 import { prisma } from '../../../config/database';
 import {
     CreateProductFitmentDTO,
@@ -12,6 +13,8 @@ const productFitmentSelect = {
             sku: true,
         },
     },
+    carBrand: { select: { id: true, name: true } },
+    carModel: { select: { id: true, name: true, carBrand: { select: { id: true, name: true } } } },
     carGeneration: {
         select: {
             id: true,
@@ -40,15 +43,11 @@ const activeProductFitmentRelationsWhere = {
     product: {
         deletedAt: null,
     },
-    carGeneration: {
-        deletedAt: null,
-        carModel: {
-            deletedAt: null,
-            carBrand: {
-                deletedAt: null,
-            },
-        },
-    },
+    AND: [
+        { OR: [{ carBrandId: null }, { carBrand: { deletedAt: null } }] },
+        { OR: [{ carModelId: null }, { carModel: { deletedAt: null, carBrand: { deletedAt: null } } }] },
+        { OR: [{ carGenerationId: null }, { carGeneration: { deletedAt: null, carModel: { deletedAt: null, carBrand: { deletedAt: null } } } }] },
+    ],
 };
 
 export class ProductFitmentRepository {
@@ -84,20 +83,20 @@ export class ProductFitmentRepository {
     }
 
     static create(productFitmentData: CreateProductFitmentDTO) {
-        return prisma.productFitment.create({
-            data: productFitmentData,
-            select: productFitmentSelect,
+        return prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productFitmentData.productId} FOR UPDATE`;
+            const [fitment] = await validateProductFitments(tx, [productFitmentData]);
+            const { id: _id, ...data } = fitment;
+            return tx.productFitment.create({ data: { ...data, productId: productFitmentData.productId }, select: productFitmentSelect });
         });
     }
 
     static update(productFitmentId: string, productFitmentData: UpdateProductFitmentDTO) {
-        return prisma.productFitment.update({
-            where: {
-                id: productFitmentId,
-                deletedAt: null,
-            },
-            data: productFitmentData,
-            select: productFitmentSelect,
+        return prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productFitmentData.productId} FOR UPDATE`;
+            const [fitment] = await validateProductFitments(tx, [productFitmentData]);
+            const { id: _id, ...data } = fitment;
+            return tx.productFitment.update({ where: { id: productFitmentId, deletedAt: null }, data: { ...data, productId: productFitmentData.productId }, select: productFitmentSelect });
         });
     }
 
@@ -125,24 +124,14 @@ export class ProductFitmentRepository {
         });
     }
 
-    static findActiveCarGeneration(
-        productFitmentData: CreateProductFitmentDTO | UpdateProductFitmentDTO,
-    ) {
-        return prisma.carGeneration.findFirst({
-            where: {
-                id: productFitmentData.carGenerationId,
-                deletedAt: null,
-                carModel: {
-                    deletedAt: null,
-                    carBrand: {
-                        deletedAt: null,
-                    },
-                },
-            },
-            select: {
-                id: true,
-            },
-        });
+    static normalizeFitment(data: CreateProductFitmentDTO | UpdateProductFitmentDTO) {
+        return validateProductFitments(prisma, [data]);
+    }
+
+    static countActiveListings(productFitmentId: string) {
+        return prisma.productExternalListingFitment.count({ where: {
+            productFitmentId, deletedAt: null, externalListing: { deletedAt: null },
+        } });
     }
 
     static findConflictingFitment(
@@ -160,6 +149,8 @@ export class ProductFitmentRepository {
                 productId: productFitmentData.productId,
                 OR: [
                     {
+                        carBrandId: productFitmentData.carBrandId,
+                        carModelId: productFitmentData.carModelId,
                         carGenerationId: productFitmentData.carGenerationId,
                     },
                     ...(productFitmentData.isPrimary
@@ -173,6 +164,8 @@ export class ProductFitmentRepository {
             },
             select: {
                 id: true,
+                carBrandId: true,
+                carModelId: true,
                 carGenerationId: true,
                 isPrimary: true,
             },

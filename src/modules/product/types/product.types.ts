@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { IntegrationChannel, IntegrationSyncStatus, Prisma } from '@prisma/client';
 import { ProductSide } from '../../../shared/constants/productSides';
 
 export interface ProductResponse {
@@ -12,6 +12,8 @@ export interface ProductResponse {
     price: Prisma.Decimal;
     quantity: number;
     customName: string | null;
+    customSummary: string | null;
+    customDescription: string | null;
     internalNote: string | null;
     side: ProductSide;
     weight: Prisma.Decimal;
@@ -41,6 +43,14 @@ export interface ProductResponse {
     };
     primaryFitment: ProductResponseFitment | null;
     productFitments: ProductResponseFitment[];
+    externalListings: {
+        id: string;
+        channel: IntegrationChannel;
+        externalId: string | null;
+        syncStatus: IntegrationSyncStatus;
+        lastSyncedAt: Date | null;
+        lastError: string | null;
+    }[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -48,6 +58,8 @@ export interface ProductResponse {
 export interface ProductResponseFitment {
     id: string;
     isPrimary: boolean;
+    carBrand: { id: string; name: string } | null;
+    carModel: { id: string; name: string; carBrand: { id: string; name: string } } | null;
     carGeneration: {
         id: string;
         startProduction: number;
@@ -60,7 +72,7 @@ export interface ProductResponseFitment {
                 name: string;
             };
         };
-    };
+    } | null;
 }
 
 export interface DeleteProductResponse {

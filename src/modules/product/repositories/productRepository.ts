@@ -1,3 +1,5 @@
+import { AppError, ErrorNames } from '../../../errors/errorHandler';
+import { validateProductFitments } from '../../productFitment/validateProductFitments';
 import { prisma } from '../../../config/database';
 import { CreateProductDTO, UpdateProductDTO } from '../schemas/product.schema';
 
@@ -8,6 +10,8 @@ const productSelect = {
     price: true,
     quantity: true,
     customName: true,
+    customSummary: true,
+    customDescription: true,
     internalNote: true,
     side: true,
     weight: true,
@@ -49,19 +53,17 @@ const productSelect = {
     productFitments: {
         where: {
             deletedAt: null,
-            carGeneration: {
-                deletedAt: null,
-                carModel: {
-                    deletedAt: null,
-                    carBrand: {
-                        deletedAt: null,
-                    },
-                },
-            },
+            AND: [
+                { OR: [{ carBrandId: null }, { carBrand: { deletedAt: null } }] },
+                { OR: [{ carModelId: null }, { carModel: { deletedAt: null, carBrand: { deletedAt: null } } }] },
+                { OR: [{ carGenerationId: null }, { carGeneration: { deletedAt: null, carModel: { deletedAt: null, carBrand: { deletedAt: null } } } }] },
+            ],
         },
         select: {
             id: true,
             isPrimary: true,
+            carBrand: { select: { id: true, name: true } },
+            carModel: { select: { id: true, name: true, carBrand: { select: { id: true, name: true } } } },
             carGeneration: {
                 select: {
                     id: true,
@@ -85,6 +87,10 @@ const productSelect = {
         orderBy: {
             isPrimary: 'desc' as const,
         },
+    },
+    externalListings: {
+        where: { deletedAt: null },
+        select: { id: true, channel: true, externalId: true, syncStatus: true, lastSyncedAt: true, lastError: true },
     },
     createdAt: true,
     updatedAt: true,
@@ -131,20 +137,42 @@ export class ProductRepository {
     }
 
     static create(productData: CreateProductDTO) {
-        return prisma.product.create({
-            data: productData,
-            select: productSelect,
+        return prisma.$transaction(async (tx) => {
+            const { productFitments, ...data } = productData;
+            const fitments = await validateProductFitments(tx, productFitments ?? []);
+            return tx.product.create({
+                data: { ...data, productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) } },
+                select: productSelect,
+            });
         });
     }
 
     static update(productId: string, productData: UpdateProductDTO) {
-        return prisma.product.update({
-            where: {
-                id: productId,
-                deletedAt: null,
-            },
-            data: productData,
-            select: productSelect,
+        return prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productId} FOR UPDATE`;
+            const { productFitments, ...data } = productData;
+            if (productFitments !== undefined) {
+                const fitments = await validateProductFitments(tx, productFitments);
+                const existing = await tx.productFitment.findMany({ where: { productId, deletedAt: null }, select: { id: true } });
+                if (fitments.some((fitment) => fitment.id && !existing.some((item) => item.id === fitment.id))) {
+                    throw new AppError(ErrorNames.CONFLICT, 409, 'Dopasowanie nie należy do produktu lub zostało usunięte. Odśwież dane.');
+                }
+                const removedIds = existing.filter((item) => !fitments.some((fitment) => fitment.id === item.id)).map((item) => item.id);
+                const linked = await tx.productExternalListingFitment.count({ where: {
+                    productFitmentId: { in: removedIds }, deletedAt: null, externalListing: { deletedAt: null },
+                } });
+                if (linked) throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można usunąć dopasowania powiązanego z ofertą zewnętrzną.');
+                await tx.productFitment.updateMany({ where: { id: { in: removedIds } }, data: { deletedAt: new Date(), isPrimary: false } });
+                // Clear primary flags before changing the primary fitment (partial unique index).
+                await tx.productFitment.updateMany({ where: { productId, deletedAt: null }, data: { isPrimary: false } });
+                // Temporarily retire retained rows to allow exchanging vehicle assignments without collisions.
+                await tx.productFitment.updateMany({ where: { productId, deletedAt: null }, data: { deletedAt: new Date() } });
+                for (const { id, ...fitment } of fitments) {
+                    if (id) await tx.productFitment.update({ where: { id }, data: { ...fitment, deletedAt: null } });
+                    else await tx.productFitment.create({ data: { ...fitment, productId } });
+                }
+            }
+            return tx.product.update({ where: { id: productId, deletedAt: null }, data, select: productSelect });
         });
     }
 
@@ -247,18 +275,7 @@ export class ProductRepository {
                     }
                     : undefined,
                 deletedAt: null,
-                OR: [
-                    {
-                        sku: productData.sku,
-                    },
-                    ...(productData.ean
-                        ? [
-                            {
-                                ean: productData.ean,
-                            },
-                        ]
-                        : []),
-                ],
+                sku: productData.sku,
             },
             select: {
                 id: true,

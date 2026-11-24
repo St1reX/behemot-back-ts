@@ -1,3 +1,4 @@
+import { prepareListingHtml } from '../utils/rendering/listingHtml';
 import { buildProductPlaceholderValues } from '../utils/rendering/buildProductPlaceholderValues';
 import {
     ProductListingTemplateRenderError,
@@ -5,6 +6,8 @@ import {
 } from '../utils/rendering/renderProductListingTemplate';
 
 type ProductListingContentData = Parameters<typeof buildProductPlaceholderValues>[0] & {
+    customSummary?: string | null;
+    customDescription?: string | null;
     listingTemplate: {
         titleTemplate: string;
         summaryTemplate: string;
@@ -30,12 +33,12 @@ export function mapProductListingContent(
                 product.listingTemplate.titleTemplate,
                 placeholderValues,
             ),
-            summary: renderProductListingTemplate(
+            summary: product.customSummary !== null && product.customSummary !== undefined ? prepareListingHtml(product.customSummary) : renderProductListingTemplate(
                 product.listingTemplate.summaryTemplate,
                 placeholderValues,
                 true,
             ),
-            description: renderProductListingTemplate(
+            description: product.customDescription !== null && product.customDescription !== undefined ? prepareListingHtml(product.customDescription) : renderProductListingTemplate(
                 product.listingTemplate.descriptionTemplate,
                 placeholderValues,
                 true,

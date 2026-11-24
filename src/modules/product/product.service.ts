@@ -145,7 +145,7 @@ export class ProductService {
         const existingProduct = await ProductRepository.findConflictingProduct(productData, excludedProductId);
 
         if (existingProduct) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Numer SKU lub EAN produktu jest już zajęty.');
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Numer SKU produktu jest już zajęty.');
         }
     }
 }

@@ -70,6 +70,9 @@ export class CarGenerationService {
     ): Promise<CarGenerationResponse> {
         const existingCarGeneration = await this.getCarGeneration(carGenerationId);
 
+        if (existingCarGeneration.carModel.id !== carGenerationData.carModelId && await CarGenerationRepository.countAssignedFitments(carGenerationId)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można zmienić modelu generacji przypisanej do produktów.');
+        }
         await this.ensureCarModelExists(carGenerationData.carModelId);
         await this.ensureCarGenerationDataIsAvailable(carGenerationData, carGenerationId);
 

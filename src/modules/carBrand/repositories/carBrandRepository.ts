@@ -78,6 +78,10 @@ export class CarBrandRepository {
         });
     }
 
+    static countAssignedFitments(carBrandId: string) {
+        return prisma.productFitment.count({ where: { carBrandId, deletedAt: null, product: { deletedAt: null } } });
+    }
+
     static softDelete(carBrandId: string) {
         return prisma.carBrand.update({
             where: {

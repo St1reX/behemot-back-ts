@@ -61,6 +61,9 @@ export class CarModelService {
         carModelData: UpdateCarModelDTO,
     ): Promise<CarModelResponse> {
         const existingCarModel = await this.getCarModel(carModelId);
+        if (existingCarModel.carBrand.id !== carModelData.carBrandId && await CarModelRepository.countAssignedFitments(carModelId)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można zmienić marki modelu przypisanego do produktów.');
+        }
         await this.ensureCarBrandExists(carModelData.carBrandId);
         await this.ensureCarModelDataIsAvailable(carModelData, carModelId);
 
@@ -80,6 +83,10 @@ export class CarModelService {
 
     static async deleteCarModel(carModelId: string): Promise<DeleteCarModelResponse> {
         const existingCarModel = await this.getCarModel(carModelId);
+
+        if (await CarModelRepository.countAssignedFitments(carModelId)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można usunąć pojazdu przypisanego do produktów.');
+        }
 
         const assignedCarGenerationsCount = await CarModelRepository.countAssignedGenerations(carModelId);
 

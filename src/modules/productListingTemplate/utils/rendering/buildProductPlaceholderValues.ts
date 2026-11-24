@@ -26,6 +26,8 @@ interface ProductPlaceholderData {
 
 interface ProductFitmentPlaceholderData {
     isPrimary: boolean;
+    carBrand?: { name: string } | null;
+    carModel?: { name: string } | null;
     carGeneration: {
         startProduction: number;
         endProduction: number | null;
@@ -35,7 +37,7 @@ interface ProductFitmentPlaceholderData {
                 name: string;
             };
         };
-    };
+    } | null;
 }
 
 export type ProductPlaceholderValues = ReturnType<typeof buildProductPlaceholderValues>;
@@ -54,8 +56,8 @@ export function buildProductPlaceholderValues(
     return {
         customName: product.customName,
         carGeneration: primaryCarGeneration ? formatCarGeneration(primaryCarGeneration) : null,
-        carBrand: primaryCarGeneration?.carModel.carBrand.name ?? null,
-        carModel: primaryCarGeneration?.carModel.name ?? null,
+        carBrand: primaryFitment?.carBrand?.name ?? primaryCarGeneration?.carModel.carBrand.name ?? null,
+        carModel: primaryFitment?.carModel?.name ?? primaryCarGeneration?.carModel.name ?? null,
         productionYears,
         sideLabel: PRODUCT_SIDE_LABELS[product.side],
         sideTitleLabel: PRODUCT_SIDE_TITLE_LABELS[product.side],

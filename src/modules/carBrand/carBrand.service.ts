@@ -69,6 +69,10 @@ export class CarBrandService {
     static async deleteCarBrand(carBrandId: string): Promise<DeleteCarBrandResponse> {
         const existingCarBrand = await this.getCarBrand(carBrandId);
 
+        if (await CarBrandRepository.countAssignedFitments(carBrandId)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można usunąć pojazdu przypisanego do produktów.');
+        }
+
         const assignedCarModelsCount = await CarBrandRepository.countAssignedModels(carBrandId);
 
         if (assignedCarModelsCount > 0) {

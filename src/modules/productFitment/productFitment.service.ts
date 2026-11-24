@@ -31,6 +31,7 @@ export class ProductFitmentService {
     static async createProductFitment(
         productFitmentData: CreateProductFitmentDTO,
     ): Promise<ProductFitmentResponse> {
+        Object.assign(productFitmentData, (await ProductFitmentRepository.normalizeFitment(productFitmentData))[0]);
         await this.ensureRelationsExist(productFitmentData);
         await this.ensureProductFitmentDataIsAvailable(productFitmentData);
 
@@ -54,6 +55,10 @@ export class ProductFitmentService {
     ): Promise<ProductFitmentResponse> {
         const existingProductFitment = await this.getProductFitment(productFitmentId);
 
+        Object.assign(productFitmentData, (await ProductFitmentRepository.normalizeFitment(productFitmentData))[0]);
+        if (existingProductFitment.product.id !== productFitmentData.productId) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można przenieść dopasowania do innego produktu.');
+        }
         await this.ensureRelationsExist(productFitmentData);
         await this.ensureProductFitmentDataIsAvailable(productFitmentData, productFitmentId);
 
@@ -87,6 +92,9 @@ export class ProductFitmentService {
             );
         }
 
+        if (await ProductFitmentRepository.countActiveListings(productFitmentId)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Dopasowanie jest powiązane z ofertą zewnętrzną.');
+        }
         await ProductFitmentRepository.softDelete(productFitmentId);
 
         await createAuditLog({
@@ -106,17 +114,9 @@ export class ProductFitmentService {
     private static async ensureRelationsExist(
         productFitmentData: CreateProductFitmentDTO | UpdateProductFitmentDTO,
     ) {
-        const [product, carGeneration] = await Promise.all([
-            ProductFitmentRepository.findActiveProduct(productFitmentData),
-            ProductFitmentRepository.findActiveCarGeneration(productFitmentData),
-        ]);
-
+        const product = await ProductFitmentRepository.findActiveProduct(productFitmentData);
         if (!product) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono produktu.');
-        }
-
-        if (!carGeneration) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono generacji pojazdu.');
         }
     }
 
@@ -133,11 +133,13 @@ export class ProductFitmentService {
             return;
         }
 
-        if (existingProductFitment.carGenerationId === productFitmentData.carGenerationId) {
+        if (existingProductFitment.carGenerationId === productFitmentData.carGenerationId
+            && existingProductFitment.carModelId === productFitmentData.carModelId
+            && existingProductFitment.carBrandId === productFitmentData.carBrandId) {
             throw new AppError(
                 ErrorNames.CONFLICT,
                 409,
-                'Produkt jest już przypisany do wybranej generacji pojazdu.',
+                'Produkt ma już takie dopasowanie do pojazdu.',
             );
         }
 
