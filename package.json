@@ -13,6 +13,8 @@
         "swagger-generate": "node swagger.js",
         "postman-generate": "ts-node --files src/cli/generatePostmanCollection.ts",
         "db-seed": "ts-node --files src/cli/seed/seedRolesPrivileges.ts",
+        "db-seed:vehicles": "ts-node --files src/cli/seed/seedVehicles.ts",
+        "db-seed:vehicles:commit": "ts-node --files src/cli/seed/seedVehicles.ts --commit",
         "auth:assign-role": "ts-node --files src/cli/auth/assignUserRole.ts",
         "auth:grant-all-privileges": "ts-node --files src/cli/auth/grantAllRolePrivileges.ts"
     },
@@ -29,6 +31,7 @@
         "csv-writer": "^1.6.0",
         "date-fns": "^4.1.0",
         "dotenv": "^16.4.7",
+        "exceljs": "^4.4.0",
         "express": "^4.21.2",
         "express-handlebars": "^8.0.1",
         "express-rate-limit": "^8.0.1",

@@ -16,6 +16,27 @@ W skryptach `auth` wybieraj strzałkami ↑/↓ i zatwierdzaj Enterem. Esc lub C
 
 Ponowne uruchomienie `db-seed` przywraca skonfigurowany zestaw uprawnień ról systemowych, również jeśli wcześniej rozszerzono go skryptem `auth:grant-all-privileges`.
 
+## Stały seeder katalogu pojazdów
+
+```sh
+npm run db-seed:vehicles
+npm run db-seed:vehicles:commit
+```
+
+Pierwsze polecenie tworzy raport Excel bez zapisu do bazy. Drugie najpierw zapisuje raport, a następnie dopisuje brakujące marki, modele i generacje w jednej transakcji PostgreSQL. Raport domyślnie trafia do `reports/vehicle-seed-<czas>.xlsx`; istniejący plik nie jest nadpisywany. Opcjonalne argumenty skryptu to `--dry-run`, `--commit`, `--output` i `--help`. Osobne polecenie zapisu eliminuje konieczność przekazywania `--commit` przez npm.
+
+Cały seeder i dane znajdują się w `src/cli/seed/seedVehicles.ts`. Zastępuje on poprzedni importer Bolmy; stare polecenia `bolma:import-vehicles` zostały usunięte. Nie pobiera danych z MySQL ani strony i nie parsuje tytułów podczas uruchomienia. Zawiera stały, przejrzany snapshot dwóch list strony dostarczonych przez użytkownika 24.11.2026: 877 pozycji oraz cztery grupy bez modeli. `sourceCategories` zachowuje oryginalne grupy marek, tytuły i identyfikatory, a `vehicleCatalog` zawiera już ustalone marki, nazwy modeli z wariantami i zakresy produkcji. Aktualizacja katalogu wymaga jawnej zmiany danych seedera. Dry run nie inicjalizuje połączenia do bazy; zapis korzysta ze wspólnej konfiguracji `.env` backendu.
+
+Każdy wpis katalogu to `[model, początekProdukcji, koniecProdukcji, źródłoweId]`. Wartości `null` dla obu lat oznaczają model bez generacji. Koniec `null` przy podanym początku oznacza brak końca w źródle; nie jest ustalany na podstawie bieżącej wiedzy o produkcji. Wpis z modelem `null` tworzy wyłącznie markę. Pojedynczy rok w tytule bez zakresu nie tworzy generacji. Oznaczenia wersji, silników, napędu, liczby drzwi i nadwozia pozostają w nazwie modelu. Usunięto z nazw wyłącznie informacje dotyczące samej części, np. długość obejmy, numer części Iveco lub pojemność zbiornika.
+
+Przykład BMW: `3 (E36)` / 1990–2000, `3 (E36) SDN` / 1990–1996 oraz `3 (E36) KOMBI` / 1996–1999 są trzema osobnymi modelami. Wpis ogólny nie zastępuje wariantów. Łączone są wyłącznie identyczne marki, pełne nazwy wariantów i dokładne zakresy lat; scalony wpis zachowuje wszystkie identyfikatory źródłowe. Różne lub nakładające się zakresy pozostają osobnymi generacjami, także gdy katalog podaje sprzeczne lata. Nie są automatycznie rozszerzane ani poprawiane. Podane w źródle listy pojazdów rozpisano na konkretne modele i przypisane im zakresy; nazwy modeli bez samodzielnego określenia, np. samotne `SDN`, `DŁ.1000 MM` lub `E15`, nie powstają z fragmentów tytułów.
+
+Zachowano wcześniejsze decyzje użytkownika: BERTONE dla FREECLIMBER 2, wspólny zakres ALBEA i PALIO WEEKEND II/III, PASSAT dla B3/B4/B5, oba modele VITO i VARIO, oddzielne marki dla SPRINTERA i LT oraz GRAND VITARA II 2005–2014. Wpis T5 z uszkodzonym zakresem `03-09-` nie występuje w przekazanych listach strony, więc nie został do nich dopisany. Uwagi o konkretnych rozstrzygnięciach i ograniczeniach źródła są zapisane w `sourceNotes` i raporcie.
+
+Przed jakimkolwiek zapisem seeder sprawdza długości nazw, zakresy lat, duplikaty pełnych wpisów i kompletność przypisania wszystkich źródeł. Raport zawiera podsumowanie, marki, osobny arkusz każdej marki, pełne źródła z mapowaniem oraz decyzje i uwagi. Pozwala porównać wariant z oryginalnym tytułem strony. Nie porównuje katalogu z bieżącą bazą docelową.
+
+Zgodnie z decyzją użytkownika stare dane pozostają bez zmian. Seeder nie usuwa, nie przemianowuje, nie scala istniejących rekordów ani nie zmienia powiązań produktów. Powtórne uruchomienie pomija aktywne marki, modele i identyczne zakresy po normalizacji nazw. Istniejące niejednoznaczne duplikaty przerywają transakcję i wymagają osobnego uporządkowania danych; skrypt nie wybiera przypadkowego rekordu. Rekordy usunięte logicznie pozostają bez zmian. Nie uruchamiaj seedera równolegle z ręcznymi zmianami słowników — schemat nie ma ograniczeń ich unikalności. Identyfikatory źródłowe służą do kontroli danych i nie są zapisywane jako relacja w PostgreSQL.
+
 Dokumentacja Swagger UI jest dostępna pod `/docs`. Po zmianie API aktualizuj plik `docs` odpowiedniego modułu i regeneruj oba pliki wynikowe. `npm run build` regeneruje Swagger, ale nie kolekcję Postmana. Generator Swagger zgłosi błąd przy brakującej lub nieistniejącej metodzie/ścieżce; zgodność pól, walidacji, odpowiedzi i uprawnień należy sprawdzić z kontrolerem, schematem i serwisem.
 
 Uwierzytelnianie korzysta z sesji cookie `behemot-api-sid`, bez tokenów Bearer. W Postmanie najpierw wykonaj `POST /auth/login` i pozostaw włączony cookie jar. Przed operacjami zależnymi ustaw zmienne identyfikatorów zasobów. Skrypty kolekcji zapisują ID po utworzeniu zasobu; nie wykonują się podczas generowania kolekcji. Zmienne szablonów ogłoszeń, np. `{{customName}}`, są składnią API — nie definiuj ich jako zmiennych Postmana, jeśli mają trafić do backendu dosłownie.
