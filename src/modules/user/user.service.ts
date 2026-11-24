@@ -6,7 +6,6 @@ import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { getRequestContext } from '../../infrastructure/requestContext/requestContext';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
-import { DepartmentRepository } from '../department/repositories/departmentRepository';
 import { RoleRepository } from '../role/repositories/roleRepository';
 import { UserRepository } from './repositories/userRepository';
 import { CreateUserDTO, UpdateUserDTO } from './schemas/user.schema';
@@ -27,13 +26,9 @@ export class UserService {
     }
 
     static async getFormOptions() {
-        const [roles, departments] = await Promise.all([
-            RoleRepository.findAll(),
-            DepartmentRepository.findAll(),
-        ]);
+        const roles = await RoleRepository.findAll();
         return {
             roles: roles.map(({ id, name }) => ({ id, name })),
-            departments: departments.map(({ id, name }) => ({ id, name })),
         };
     }
 
@@ -84,9 +79,6 @@ export class UserService {
         }
         if (!await RoleRepository.findById(data.roleId)) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono wybranej roli.');
-        }
-        if (data.departmentId && !await DepartmentRepository.findById(data.departmentId)) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono wybranego działu.');
         }
     }
 }

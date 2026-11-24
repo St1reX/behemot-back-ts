@@ -7,7 +7,6 @@ export const UpdateUserSchema = RegisterUserSchema.omit({ password: true }).exte
     username: z.string().trim().pipe(RegisterUserSchema.shape.username),
     email: z.string().trim().pipe(RegisterUserSchema.shape.email),
     roleId: z.string().uuid(),
-    departmentId: z.string().uuid().nullable(),
     isActive: z.boolean(),
 });
 

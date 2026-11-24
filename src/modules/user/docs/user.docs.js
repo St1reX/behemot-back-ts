@@ -9,10 +9,9 @@ const bodySchema = {
     username: { type: 'string', minLength: 3, maxLength: 25 },
     email: { type: 'string', format: 'email' },
     roleId: { type: 'string', format: 'uuid' },
-    departmentId: { type: 'string', format: 'uuid', nullable: true },
     isActive: { type: 'boolean' },
   },
-  required: ['username', 'email', 'roleId', 'departmentId', 'isActive'],
+  required: ['username', 'email', 'roleId', 'isActive'],
 };
 const userSchema = {
   type: 'object',
@@ -20,7 +19,6 @@ const userSchema = {
     ...bodySchema.properties,
     id: { type: 'string', format: 'uuid' },
     role: optionSchema,
-    department: { ...optionSchema, nullable: true },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
@@ -32,7 +30,7 @@ const common = {
 const errors = {
   401: { description: 'Authentication required.' },
   403: { description: 'Insufficient privileges or forbidden own-account operation.' },
-  404: { description: 'User, role or department not found.' },
+  404: { description: 'User or role not found.' },
   409: { description: 'Email or username already reserved, including soft-deleted accounts.' },
   422: { description: 'Invalid request data.' },
 };
@@ -62,12 +60,11 @@ module.exports = {
     },
     '/user/form-options': {
       get: {
-        ...common, summary: 'List available roles and departments for the user editor',
+        ...common, summary: 'List available roles for the user editor',
         description: 'Requires USER:CREATE or USER:UPDATE.',
         responses: { ...errors, 200: { description: 'Editor options.', content: json({
           type: 'object', properties: {
             roles: { type: 'array', items: optionSchema },
-            departments: { type: 'array', items: optionSchema },
           },
         }) } },
       },
@@ -78,7 +75,7 @@ module.exports = {
         responses: { ...errors, 200: { description: 'User.', content: json(userReference) } },
       },
       put: {
-        ...common, parameters: [idParameter], summary: 'Update user data, role, department and status',
+        ...common, parameters: [idParameter], summary: 'Update user data, role and status',
         description: 'Cannot change own role or deactivate own account. Password is not changed. Status or email changes invalidate pending verification links; saving an inactive account also invalidates its pending links.',
         requestBody: { required: true, content: json(bodySchema) },
         responses: { ...errors, 200: { description: 'User updated.', content: json(userReference) } },

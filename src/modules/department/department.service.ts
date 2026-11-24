@@ -66,13 +66,12 @@ export class DepartmentService {
     static async deleteDepartment(departmentId: string): Promise<DeleteDepartmentResponse> {
         const existingDepartment = await this.getDepartment(departmentId);
 
-        const [assignedUsersCount, assignedProductsCount, assignedProductDescriptionsCount] =
+        const [assignedProductsCount, assignedProductListingTemplatesCount] =
             await DepartmentRepository.countAssignments(departmentId);
 
         if (
-            assignedUsersCount > 0 ||
             assignedProductsCount > 0 ||
-            assignedProductDescriptionsCount > 0
+            assignedProductListingTemplatesCount > 0
         ) {
             throw new AppError(
                 ErrorNames.CONFLICT,

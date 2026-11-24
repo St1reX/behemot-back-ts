@@ -52,12 +52,6 @@ export class DepartmentRepository {
 
     static countAssignments(departmentId: string) {
         return prisma.$transaction([
-            prisma.user.count({
-                where: {
-                    departmentId,
-                    deletedAt: null,
-                },
-            }),
             prisma.product.count({
                 where: {
                     departmentId,

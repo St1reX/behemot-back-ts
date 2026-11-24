@@ -880,7 +880,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -921,11 +921,6 @@
                     "type": "string",
                     "format": "uuid"
                   },
-                  "departmentId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "nullable": true
-                  },
                   "isActive": {
                     "type": "boolean"
                   },
@@ -939,7 +934,6 @@
                   "username",
                   "email",
                   "roleId",
-                  "departmentId",
                   "isActive",
                   "password"
                 ]
@@ -965,7 +959,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -986,7 +980,7 @@
             "cookieAuth": []
           }
         ],
-        "summary": "List available roles and departments for the user editor",
+        "summary": "List available roles for the user editor",
         "description": "Requires USER:CREATE or USER:UPDATE.",
         "responses": {
           "200": {
@@ -997,25 +991,6 @@
                   "type": "object",
                   "properties": {
                     "roles": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
-                      }
-                    },
-                    "departments": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -1046,7 +1021,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -1097,7 +1072,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -1127,7 +1102,7 @@
             }
           }
         ],
-        "summary": "Update user data, role, department and status",
+        "summary": "Update user data, role and status",
         "description": "Cannot change own role or deactivate own account. Password is not changed. Status or email changes invalidate pending verification links; saving an inactive account also invalidates its pending links.",
         "requestBody": {
           "required": true,
@@ -1149,11 +1124,6 @@
                     "type": "string",
                     "format": "uuid"
                   },
-                  "departmentId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "nullable": true
-                  },
                   "isActive": {
                     "type": "boolean"
                   }
@@ -1162,7 +1132,6 @@
                   "username",
                   "email",
                   "roleId",
-                  "departmentId",
                   "isActive"
                 ]
               }
@@ -1187,7 +1156,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -1230,7 +1199,7 @@
             "description": "Insufficient privileges or forbidden own-account operation."
           },
           "404": {
-            "description": "User, role or department not found."
+            "description": "User or role not found."
           },
           "409": {
             "description": "Email or username already reserved, including soft-deleted accounts."
@@ -1685,11 +1654,6 @@
             "type": "string",
             "format": "uuid"
           },
-          "departmentId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
           "isActive": {
             "type": "boolean"
           },
@@ -1712,23 +1676,6 @@
               "id",
               "name"
             ]
-          },
-          "department": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "nullable": true
           },
           "createdAt": {
             "type": "string",
