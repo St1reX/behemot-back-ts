@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 import { isProductListingPlaceholder } from '../constants/productListingPlaceholders';
 import { hasListingText, prepareListingHtml } from '../utils/rendering/listingHtml';
 
@@ -27,16 +28,14 @@ export const PreviewProductListingTemplateSchema = z.object({
 
 export type PreviewProductListingTemplateDTO = z.infer<typeof PreviewProductListingTemplateSchema>;
 
-export const ProductListingTemplateIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const ProductListingTemplateIdSchema = IdParamsSchema;
 
 export const CreateProductListingTemplateSchema = z.object({
     name: z.string().trim().min(1).max(100),
     titleTemplate: titleTemplateSchema.refine((value) => value.length > 0, 'Podaj tytuł.'),
     summaryTemplate: richTemplateSchema.refine(hasListingText, 'Podaj skrót opisu.'),
     descriptionTemplate: richTemplateSchema.refine(hasListingText, 'Podaj opis.'),
-    departmentId: z.string().uuid(),
+    departmentId: UuidSchema,
 });
 
 export type CreateProductListingTemplateDTO = z.infer<

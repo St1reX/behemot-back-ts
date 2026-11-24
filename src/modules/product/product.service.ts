@@ -1,6 +1,6 @@
 import { OperationStatus } from '@prisma/client';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
-import { createAuditLog } from '../../infrastructure/audit/auditLogger';
+import { createAuditLog, createAuditLogs } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { enqueueProductListingSync } from './jobs/listingSync/productListingSync.queue';
@@ -77,31 +77,30 @@ export class ProductService {
 
         const { fitments, crossReferences } = await ProductRepository.softDeleteWithRelations(productId, deletedAt);
 
-        for (const [entityName, records] of [
+        const relatedRecords = [
             [ENTITIES.PRODUCT_FITMENT, fitments],
             [ENTITIES.PRODUCT_CROSS_REFERENCE, crossReferences],
-        ] as const) {
-            for (const record of records) {
-                await createAuditLog({
-                    entityName,
-                    entityId: record.id,
-                    action: ACTIONS.DELETE,
-                    operationStatus: OperationStatus.SUCCESS,
-                    comment: `Usunięto wraz z produktem ${existingProduct.sku} (${productId}).`,
-                    dataBefore: record,
-                    dataAfter: null,
-                });
-            }
-        }
+        ] as const;
 
-        await createAuditLog({
-            entityName: ENTITIES.PRODUCT,
-            entityId: productId,
-            action: ACTIONS.DELETE,
-            operationStatus: OperationStatus.SUCCESS,
-            dataBefore: existingProduct,
-            dataAfter: null,
-        });
+        await createAuditLogs([
+            ...relatedRecords.flatMap(([entityName, records]) => records.map((record) => ({
+                entityName,
+                entityId: record.id,
+                action: ACTIONS.DELETE,
+                operationStatus: OperationStatus.SUCCESS,
+                comment: `Usunięto wraz z produktem ${existingProduct.sku} (${productId}).`,
+                dataBefore: record,
+                dataAfter: null,
+            }))),
+            {
+                entityName: ENTITIES.PRODUCT,
+                entityId: productId,
+                action: ACTIONS.DELETE,
+                operationStatus: OperationStatus.SUCCESS,
+                dataBefore: existingProduct,
+                dataAfter: null,
+            },
+        ]);
 
         return {
             message: 'Product has been deleted successfully',

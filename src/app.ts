@@ -4,17 +4,17 @@ import cors from 'cors';
 import { appWinston } from './config/logger/appWinston';
 import { notFound, errorHandler } from './errors/errorHandler';
 import passport from './config/passport';
-import { sessionMiddleware } from './middlewares/sessionMiddleware';
-import { limiter } from './middlewares/rateLimiter';
-import { requestId } from './middlewares/requestId';
-import { trafficLogger } from './middlewares/trafficLogger';
-import { helmetConfig } from './middlewares/helmet';
+import { sessionMiddleware } from './middlewares/auth/sessionMiddleware';
+import { limiter } from './middlewares/security/rateLimiter';
+import { requestId } from './middlewares/context/requestId';
+import { trafficLogger } from './middlewares/logging/trafficLogger';
+import { helmetConfig } from './middlewares/security/helmet';
 import { loadRoutes } from './shared/utils/loadRoutes';
 import { frontendUrl, isDevelopment } from './config/env';
 import swaggerUi from 'swagger-ui-express';
 import swaggerFile from './swagger/swagger_output.json';
-import { attachUserToRequestContext } from './middlewares/attachUserToRequestContext';
-import { metricsMiddleware, metricsHandler } from './middlewares/metrics';
+import { attachUserToRequestContext } from './middlewares/context/attachUserToRequestContext';
+import { metricsMiddleware, metricsHandler } from './middlewares/monitoring/metrics';
 
 const app = express();
 

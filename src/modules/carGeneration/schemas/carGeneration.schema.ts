@@ -1,11 +1,10 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 
-export const CarGenerationIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const CarGenerationIdSchema = IdParamsSchema;
 
 export const CarModelIdParamSchema = z.object({
-    carModelId: z.string().uuid(),
+    carModelId: UuidSchema,
 });
 
 export const CreateCarGenerationSchema = z
@@ -14,7 +13,7 @@ export const CreateCarGenerationSchema = z
             .min(1886, 'Początek produkcji nie może być wcześniejszy niż 1886.'),
         endProduction: z.number().int('Podaj pełny rok końca produkcji.')
             .min(1886, 'Koniec produkcji nie może być wcześniejszy niż 1886.').nullable(),
-        carModelId: z.string().uuid(),
+        carModelId: UuidSchema,
     })
     .refine(
         (carGenerationData) =>

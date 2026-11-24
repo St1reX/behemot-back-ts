@@ -1,22 +1,21 @@
 import { z } from 'zod';
+import { EmailSchema, PasswordSchema, UsernameSchema } from '../../../shared/schema/commonSchema';
 
 export const LoginUserSchema = z.object({
-    username: z.string()
-        .min(3, 'Nazwa użytkownika musi mieć co najmniej 3 znaki.')
-        .max(25, 'Nazwa użytkownika może mieć najwyżej 25 znaków.'),
-    password: z.string().min(8, 'Hasło musi mieć co najmniej 8 znaków.'),
+    username: UsernameSchema,
+    password: PasswordSchema,
 });
 
 export type LoginUserDTO = z.infer<typeof LoginUserSchema>;
 
 export const RegisterUserSchema = LoginUserSchema.extend({
-    email: z.string().email(),
+    email: EmailSchema,
 });
 
 export type RegisterUserDTO = z.infer<typeof RegisterUserSchema>;
 
 export const ResendRegistrationMailSchema = z.object({
-    email: z.string().email(),
+    email: EmailSchema,
 });
 
 export type ResendRegistrationMailDTO = z.infer<typeof ResendRegistrationMailSchema>;

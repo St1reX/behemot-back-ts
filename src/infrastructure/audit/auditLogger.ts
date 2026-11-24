@@ -22,6 +22,10 @@ interface LogEntry {
     createdAt?: Date;
 }
 
+type AuditLogInput = Omit<LogEntry, 'userId' | 'isSuspicious' | 'suspiciousReason' | 'createdAt'> & {
+    userId?: string;
+};
+
 type SuspicionRule = (log: LogEntry) => string | null;
 const suspicionRules: SuspicionRule[] = [
     (log) => {
@@ -51,6 +55,10 @@ function analyzeSuspicion(log: LogEntry): {
     isSuspicious: boolean;
     suspiciousReason?: string;
 } {
+    // Rejected operations are expected to leave the stored data unchanged.
+    if (log.operationStatus !== OperationStatus.SUCCESS) {
+        return { isSuspicious: false };
+    }
     for (const rule of suspicionRules) {
         const reason = rule(log);
         if (reason) {
@@ -60,18 +68,14 @@ function analyzeSuspicion(log: LogEntry): {
     return { isSuspicious: false };
 }
 
-export async function createAuditLog(
-    log: Omit<LogEntry, 'userId' | 'isSuspicious' | 'suspiciousReason' | 'createdAt'> & {
-        userId?: string;
-    },
-) {
+function prepareAuditLog(log: AuditLogInput): LogEntry | null {
     const requestContext = getRequestContext();
 
     const userId = log.userId ?? requestContext?.userId;
 
     if (!userId) {
         appWinston.error('Error while saving AUDIT LOG: userId is missing');
-        return;
+        return null;
     }
 
     const logWithRequestContext = {
@@ -81,14 +85,28 @@ export async function createAuditLog(
         userId,
     };
 
+    return {
+        ...logWithRequestContext,
+        ...analyzeSuspicion(logWithRequestContext),
+        createdAt: new Date(),
+    };
+}
+
+export async function createAuditLog(log: AuditLogInput) {
     try {
-        const suspicionResult = analyzeSuspicion(logWithRequestContext);
-        const fullLog: LogEntry = {
-            ...logWithRequestContext,
-            ...suspicionResult,
-            createdAt: new Date(),
-        };
-        await AuditRepository.create(fullLog);
+        const fullLog = prepareAuditLog(log);
+        if (fullLog) await AuditRepository.create(fullLog);
+    } catch (error) {
+        appWinston.error('Error while saving AUDIT LOG: ', error);
+    }
+}
+
+export async function createAuditLogs(logs: AuditLogInput[]) {
+    if (logs.length === 0) return;
+
+    try {
+        const fullLogs = logs.map(prepareAuditLog).filter((log): log is LogEntry => log !== null);
+        if (fullLogs.length > 0) await AuditRepository.createMany(fullLogs);
     } catch (error) {
         appWinston.error('Error while saving AUDIT LOG: ', error);
     }

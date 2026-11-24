@@ -40,7 +40,7 @@ const userReference = { $ref: '#/components/schemas/ManagedUser' };
 const idParameter = { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } };
 
 module.exports = {
-  tags: [{ name: 'Users', description: 'User management. Requires corresponding USER privileges.' }],
+  tags: [{ name: 'Users', description: 'User management. Requires corresponding USER privileges. Rejected write requests by authenticated users are recorded in the audit history as FAILED.' }],
   schemas: { ManagedUser: userSchema },
   paths: {
     '/user': {

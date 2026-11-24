@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { trafficWinston } from '../config/logger/trafficWinston';
+import { trafficWinston } from '../../config/logger/trafficWinston';
 
 export function trafficLogger(req: Request, res: Response, next: NextFunction) {
     const start = Date.now();

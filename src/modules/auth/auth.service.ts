@@ -1,6 +1,5 @@
 import { OperationStatus } from '@prisma/client';
-import { randomBytes, scrypt } from 'crypto';
-import { promisify } from 'util';
+import { randomBytes } from 'crypto';
 import { frontendUrl } from '../../config/env';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
@@ -10,6 +9,7 @@ import { ROLES } from '../../shared/constants/roles';
 import { MailingService } from '../mailing/mailing.service';
 import { mapRegistrationTokenAuditData } from './mappers/authMapper';
 import { AuthRepository } from './repositories/authRepository';
+import { hashPassword } from './utils/hashPassword';
 import {
     RegisterUserDTO,
     ResendRegistrationMailDTO,
@@ -21,7 +21,6 @@ import {
     VerifyAccountResponse,
 } from './types/auth.types';
 
-const scryptAsync = promisify(scrypt);
 const REGISTRATION_TOKEN_EXPIRATION_HOURS = 24;
 const REGISTRATION_MAIL_RESEND_COOLDOWN_MINUTES = 10;
 
@@ -50,14 +49,13 @@ export class AuthService {
             throw new AppError(ErrorNames.INTERNAL_SERVER_ERROR, 500, 'Default user role is missing');
         }
 
-        const passwordSalt = randomBytes(16).toString('hex');
-        const passwordHash = (await scryptAsync(userData.password, passwordSalt, 64)) as Buffer;
+        const passwordHash = await hashPassword(userData.password);
         const registrationToken = randomBytes(32).toString('hex');
 
         const { registrationToken: createdRegistrationToken, ...createdUser } = await AuthRepository.create({
             email: userData.email,
             username: userData.username,
-            passwordHash: `${passwordSalt}:${passwordHash.toString('hex')}`,
+            passwordHash,
             isActive: false,
             role: {
                 connect: {

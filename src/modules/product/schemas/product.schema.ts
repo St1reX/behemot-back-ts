@@ -1,12 +1,11 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 import { PRODUCT_SIDES } from '../../../shared/constants/productSides';
 
 const decimalSchema = z.number().nonnegative().max(9999.99).multipleOf(0.01);
 const dimensionSchema = decimalSchema.positive();
 
-export const ProductIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const ProductIdSchema = IdParamsSchema;
 
 export const CreateProductSchema = z.object({
     imagesUrls: z.array(z.string().url()),
@@ -24,10 +23,10 @@ export const CreateProductSchema = z.object({
     ean: z.string().min(1).nullable(),
     oem: z.array(z.string().min(1)),
     warehouseLocation: z.string().min(1),
-    warehouseId: z.string().uuid(),
-    listingTemplateId: z.string().uuid(),
-    departmentId: z.string().uuid(),
-    producerId: z.string().uuid(),
+    warehouseId: UuidSchema,
+    listingTemplateId: UuidSchema,
+    departmentId: UuidSchema,
+    producerId: UuidSchema,
 });
 
 export type CreateProductDTO = z.infer<typeof CreateProductSchema>;

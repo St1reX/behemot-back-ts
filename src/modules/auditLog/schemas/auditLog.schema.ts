@@ -1,5 +1,6 @@
 import { OperationStatus } from '@prisma/client';
 import { z } from 'zod';
+import { IdParamsSchema } from '../../../shared/schema/commonSchema';
 import { ENTITIES, Entity } from '../../../shared/constants/entities';
 
 export const AuditLogQuerySchema = z.object({
@@ -15,5 +16,5 @@ export const AuditLogQuerySchema = z.object({
     message: 'Początek zakresu nie może być późniejszy niż koniec.', path: ['to'],
 });
 
-export const AuditLogIdSchema = z.object({ id: z.string().uuid() });
+export const AuditLogIdSchema = IdParamsSchema;
 export type AuditLogQuery = z.infer<typeof AuditLogQuerySchema>;

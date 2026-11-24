@@ -1,7 +1,7 @@
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
-import { redisClient } from '../config/redis';
-import { env, isProduction } from '../config/env';
+import { redisClient } from '../../config/redis';
+import { env, isProduction } from '../../config/env';
 
 export const sessionCookieName = 'behemot-api-sid';
 

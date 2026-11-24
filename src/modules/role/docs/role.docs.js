@@ -48,7 +48,7 @@ const privilegeUpdateBody = {
 };
 
 module.exports = {
-  tags: [{ name: 'Roles', description: 'Roles and assigned privileges.' }],
+  tags: [{ name: 'Roles', description: 'Roles and assigned privileges. Rejected write requests by authenticated users are recorded in the audit history as FAILED.' }],
   schemas: {
     Role: roleSchema,
     RolePrivilege: privilegeSchema,

@@ -65,6 +65,14 @@ export class RoleRepository {
         });
     }
 
+    static async existsById(roleId: string): Promise<boolean> {
+        const role = await prisma.role.findFirst({
+            where: { id: roleId, deletedAt: null },
+            select: { id: true },
+        });
+        return role !== null;
+    }
+
     static create(roleData: Pick<CreateRoleDTO, 'name'>, privilegeIds: string[] = []) {
         return prisma.role.create({
             data: {

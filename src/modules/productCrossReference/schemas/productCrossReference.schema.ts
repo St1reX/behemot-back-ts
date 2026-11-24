@@ -1,12 +1,11 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 
-export const ProductCrossReferenceIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const ProductCrossReferenceIdSchema = IdParamsSchema;
 
 export const CreateProductCrossReferenceSchema = z.object({
-    productId: z.string().uuid(),
-    contractorId: z.string().uuid(),
+    productId: UuidSchema,
+    contractorId: UuidSchema,
     contractorSku: z.string().min(1),
     contractorEan: z.string().min(1).nullable(),
 });

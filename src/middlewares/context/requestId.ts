@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response, NextFunction } from 'express';
-import { requestContextStorage } from '../infrastructure/requestContext/requestContext';
+import { requestContextStorage } from '../../infrastructure/requestContext/requestContext';
 
 export function requestId(req: Request, res: Response, next: NextFunction) {
   const requestId = uuidv4();

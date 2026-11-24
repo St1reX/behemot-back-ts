@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares/requireAuth';
-import { requirePrivilege } from '../../middlewares/requirePrivilege';
+import { requireAuth } from '../../middlewares/auth/requireAuth';
+import { requirePrivilege } from '../../middlewares/auth/requirePrivilege';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { ProductFitmentController } from './productFitment.controller';

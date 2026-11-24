@@ -1,16 +1,13 @@
 import { OperationStatus } from '@prisma/client';
-import { randomBytes, scrypt } from 'crypto';
-import { promisify } from 'util';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog } from '../../infrastructure/audit/auditLogger';
 import { getRequestContext } from '../../infrastructure/requestContext/requestContext';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { RoleRepository } from '../role/repositories/roleRepository';
+import { hashPassword } from '../auth/utils/hashPassword';
 import { UserRepository } from './repositories/userRepository';
 import { CreateUserDTO, UpdateUserDTO } from './schemas/user.schema';
-
-const scryptAsync = promisify(scrypt);
 
 export class UserService {
     static getUsers() {
@@ -34,9 +31,8 @@ export class UserService {
 
     static async createUser({ password, ...data }: CreateUserDTO) {
         await this.validateData(data);
-        const salt = randomBytes(16).toString('hex');
-        const hash = (await scryptAsync(password, salt, 64)) as Buffer;
-        const user = await UserRepository.create({ ...data, passwordHash: `${salt}:${hash.toString('hex')}` });
+        const passwordHash = await hashPassword(password);
+        const user = await UserRepository.create({ ...data, passwordHash });
         await createAuditLog({
             entityName: ENTITIES.USER, entityId: user.id, action: ACTIONS.CREATE,
             operationStatus: OperationStatus.SUCCESS, dataBefore: null, dataAfter: user,
@@ -77,7 +73,7 @@ export class UserService {
         if (await UserRepository.findConflict(data, excludedId)) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Adres e-mail lub nazwa użytkownika są już zajęte.');
         }
-        if (!await RoleRepository.findById(data.roleId)) {
+        if (!await RoleRepository.existsById(data.roleId)) {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono wybranej roli.');
         }
     }

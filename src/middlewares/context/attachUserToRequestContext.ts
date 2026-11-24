@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { getRequestContext } from '../infrastructure/requestContext/requestContext';
+import { getRequestContext } from '../../infrastructure/requestContext/requestContext';
 
 export function attachUserToRequestContext(req: Request, _res: Response, next: NextFunction) {
     const requestContext = getRequestContext();

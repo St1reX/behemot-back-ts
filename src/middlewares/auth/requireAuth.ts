@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorNames } from '../errors/errorHandler';
+import { AppError, ErrorNames } from '../../errors/errorHandler';
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {

@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares/requireAuth';
-import { requirePrivilege } from '../../middlewares/requirePrivilege';
+import { requireAuth } from '../../middlewares/auth/requireAuth';
+import { requirePrivilege } from '../../middlewares/auth/requirePrivilege';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { UserController } from './user.controller';
+import { auditRejectedAdminOperation } from '../../middlewares/logging/auditRejectedAdminOperation';
 
 const router = Router();
 router.use(requireAuth);
@@ -15,5 +16,6 @@ router.get('/:id', requirePrivilege(`${ENTITIES.USER}:${ACTIONS.READ}`), UserCon
 router.post('/', requirePrivilege(`${ENTITIES.USER}:${ACTIONS.CREATE}`), UserController.createUser);
 router.put('/:id', requirePrivilege(`${ENTITIES.USER}:${ACTIONS.UPDATE}`), UserController.updateUser);
 router.delete('/:id', requirePrivilege(`${ENTITIES.USER}:${ACTIONS.DELETE}`), UserController.deleteUser);
+router.use(auditRejectedAdminOperation(ENTITIES.USER));
 
 export default router;

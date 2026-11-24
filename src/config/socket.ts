@@ -6,7 +6,7 @@ import { appWinston } from './logger/appWinston';
 import passport from './passport';
 import { redisClient } from './redis';
 import { frontendUrl } from './env';
-import { sessionMiddleware } from '../middlewares/sessionMiddleware';
+import { sessionMiddleware } from '../middlewares/auth/sessionMiddleware';
 import { ProductServerToClientEvents } from '../modules/product/events/product.events';
 
 interface ClientToServerEvents {}

@@ -16,7 +16,7 @@ import {
     ResendRegistrationMailResponse,
     VerifyAccountResponse,
 } from './types/auth.types';
-import { sessionCookieName, sessionCookieOptions } from '../../middlewares/sessionMiddleware';
+import { sessionCookieName, sessionCookieOptions } from '../../middlewares/auth/sessionMiddleware';
 
 export class AuthController {
     static getCurrentUser(req: Request, res: Response<CurrentUserResponse>, next: NextFunction) {

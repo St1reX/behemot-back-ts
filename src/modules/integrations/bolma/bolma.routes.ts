@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middlewares/requireAuth';
+import { requireAuth } from '../../../middlewares/auth/requireAuth';
 import { BolmaController } from './bolma.controller';
 
 const router = Router();

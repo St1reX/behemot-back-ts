@@ -1,12 +1,11 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 
-export const ProductFitmentIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const ProductFitmentIdSchema = IdParamsSchema;
 
 export const CreateProductFitmentSchema = z.object({
-    productId: z.string().uuid(),
-    carGenerationId: z.string().uuid(),
+    productId: UuidSchema,
+    carGenerationId: UuidSchema,
     isPrimary: z.boolean(),
 });
 

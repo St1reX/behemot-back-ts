@@ -1,8 +1,7 @@
 import { z } from 'zod';
+import { IdParamsSchema } from '../../../shared/schema/commonSchema';
 
-export const ProducerIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const ProducerIdSchema = IdParamsSchema;
 
 export const CreateProducerSchema = z.object({
     name: z.string().min(1).max(100),

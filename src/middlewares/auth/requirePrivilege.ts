@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorNames } from '../errors/errorHandler';
+import { AppError, ErrorNames } from '../../errors/errorHandler';
 
 export function requirePrivilege(requiredPrivileges: string | string[]) {
   const privileges = Array.isArray(requiredPrivileges)

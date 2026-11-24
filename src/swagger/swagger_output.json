@@ -73,11 +73,11 @@
     },
     {
       "name": "Roles",
-      "description": "Roles and assigned privileges."
+      "description": "Roles and assigned privileges. Rejected write requests by authenticated users are recorded in the audit history as FAILED."
     },
     {
       "name": "Users",
-      "description": "User management. Requires corresponding USER privileges."
+      "description": "User management. Requires corresponding USER privileges. Rejected write requests by authenticated users are recorded in the audit history as FAILED."
     },
     {
       "name": "Warehouses",

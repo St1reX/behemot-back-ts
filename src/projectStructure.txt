@@ -40,12 +40,23 @@ src/
 |       `-- presta.mapper.ts
 |
 |-- middlewares/
-|   |-- requireAuth.ts
-|   |-- requireRole.ts
-|   |-- requirePrivilege.ts
-|   |-- rateLimiter.ts
-|   |-- requestId.ts
-|   `-- sessionMiddleware.ts
+|   |-- auth/
+|   |   |-- requireAuth.ts
+|   |   |-- requireGuest.ts
+|   |   |-- requirePrivilege.ts
+|   |   |-- requireRole.ts
+|   |   `-- sessionMiddleware.ts
+|   |-- context/
+|   |   |-- attachUserToRequestContext.ts
+|   |   `-- requestId.ts
+|   |-- logging/
+|   |   |-- auditRejectedAdminOperation.ts
+|   |   `-- trafficLogger.ts
+|   |-- monitoring/
+|   |   `-- metrics.ts
+|   `-- security/
+|       |-- helmet.ts
+|       `-- rateLimiter.ts
 |
 |-- modules/
 |   |-- health/

@@ -1,16 +1,15 @@
 import { z } from 'zod';
+import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 
-export const CarModelIdSchema = z.object({
-    id: z.string().uuid(),
-});
+export const CarModelIdSchema = IdParamsSchema;
 
 export const CarBrandIdParamSchema = z.object({
-    carBrandId: z.string().uuid(),
+    carBrandId: UuidSchema,
 });
 
 export const CreateCarModelSchema = z.object({
     name: z.string().trim().min(1, 'Podaj nazwę modelu.').max(100, 'Nazwa modelu może mieć najwyżej 100 znaków.'),
-    carBrandId: z.string().uuid(),
+    carBrandId: UuidSchema,
 });
 
 export type CreateCarModelDTO = z.infer<typeof CreateCarModelSchema>;

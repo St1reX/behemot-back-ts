@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares/requireAuth';
-import { requirePrivilege } from '../../middlewares/requirePrivilege';
+import { requireAuth } from '../../middlewares/auth/requireAuth';
+import { requirePrivilege } from '../../middlewares/auth/requirePrivilege';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { RoleController } from './role.controller';
+import { auditRejectedAdminOperation } from '../../middlewares/logging/auditRejectedAdminOperation';
 
 const router = Router();
 
@@ -33,5 +34,7 @@ router.delete(
     requirePrivilege(`${ENTITIES.ROLE}:${ACTIONS.DELETE}`),
     RoleController.deleteRole,
 );
+
+router.use(auditRejectedAdminOperation(ENTITIES.ROLE));
 
 export default router;

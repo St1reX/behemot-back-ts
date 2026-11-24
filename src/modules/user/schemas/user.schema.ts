@@ -1,17 +1,17 @@
 import { z } from 'zod';
-import { RegisterUserSchema } from '../../auth/schemas/auth.schema';
+import { EmailSchema, IdParamsSchema, PasswordSchema, UsernameSchema, UuidSchema } from '../../../shared/schema/commonSchema';
 
-export const UserIdSchema = z.object({ id: z.string().uuid() });
+export const UserIdSchema = IdParamsSchema;
 
-export const UpdateUserSchema = RegisterUserSchema.omit({ password: true }).extend({
-    username: z.string().trim().pipe(RegisterUserSchema.shape.username),
-    email: z.string().trim().pipe(RegisterUserSchema.shape.email),
-    roleId: z.string().uuid(),
+export const UpdateUserSchema = z.object({
+    username: z.string().trim().pipe(UsernameSchema),
+    email: z.string().trim().pipe(EmailSchema),
+    roleId: UuidSchema,
     isActive: z.boolean(),
 });
 
 export const CreateUserSchema = UpdateUserSchema.extend({
-    password: RegisterUserSchema.shape.password,
+    password: PasswordSchema,
 });
 
 export type CreateUserDTO = z.infer<typeof CreateUserSchema>;
