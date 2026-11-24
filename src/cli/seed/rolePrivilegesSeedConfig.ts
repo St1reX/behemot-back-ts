@@ -1,6 +1,6 @@
-import { ROLES, RoleName } from '../shared/constants/roles';
-import { PRIVILEGES, PrivilegesValue } from '../shared/constants/privileges';
-import { ENTITIES, Entity } from '../shared/constants/entities';
+import { ROLES, RoleName } from '../../shared/constants/roles';
+import { PRIVILEGES, PrivilegesValue } from '../../shared/constants/privileges';
+import { ENTITIES, Entity } from '../../shared/constants/entities';
 
 // Wartości const do mapy uprawnień
 const EntitiesValuesArray = Object.values(ENTITIES);
@@ -16,8 +16,20 @@ export type RoleSeedConfig = {
 
 export const rolesToSeed: RoleSeedConfig[] = [
     {
+        name: ROLES.SUPERADMIN,
+        privileges: null,
+    },
+    {
         name: ROLES.ADMIN,
-        privileges: null, // null = wszystkie uprawnienia
+        privileges: PRIVILEGES.filter(
+            (privilege) =>
+                !privilege.startsWith(`${ENTITIES.ROLE}:`) &&
+                !privilege.startsWith(`${ENTITIES.USER}:`),
+        ),
+    },
+    {
+        name: ROLES.USER,
+        privileges: [],
     },
 ];
 

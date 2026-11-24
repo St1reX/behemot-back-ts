@@ -12,7 +12,9 @@
         "build": "npm run swagger-generate && tsc && node dist/src/cli/copyStaticAssets.js",
         "swagger-generate": "node swagger.js",
         "postman-generate": "ts-node --files src/cli/generatePostmanCollection.ts",
-        "db-seed": "ts-node --files src/cli/seedRolesPrivileges.ts"
+        "db-seed": "ts-node --files src/cli/seed/seedRolesPrivileges.ts",
+        "auth:assign-role": "ts-node --files src/cli/auth/assignUserRole.ts",
+        "auth:grant-all-privileges": "ts-node --files src/cli/auth/grantAllRolePrivileges.ts"
     },
     "author": "St1reX",
     "license": "ISC",

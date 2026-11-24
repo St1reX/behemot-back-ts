@@ -4,9 +4,16 @@ src/
 |   `-- pdf-templates/
 |
 |-- cli/
+|   |-- auth/
+|   |   |-- assignUserRole.ts
+|   |   `-- grantAllRolePrivileges.ts
+|   |-- seed/
+|   |   |-- rolePrivilegesSeedConfig.ts
+|   |   `-- seedRolesPrivileges.ts
+|   |-- shared/
+|   |   `-- selectOption.ts
 |   |-- copyStaticAssets.ts
-|   |-- rolePrivilegesSeedConfig.ts
-|   `-- seedRolesPrivileges.ts
+|   `-- generatePostmanCollection.ts
 |
 |-- config/
 |   |-- env.ts

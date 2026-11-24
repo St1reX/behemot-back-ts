@@ -1,24 +1,23 @@
-import { prisma } from '../config/database';
-import { RoleRepository } from '../modules/role/repositories/roleRepository';
-import { ROLES } from '../shared/constants/roles';
-import { PRIVILEGES } from '../shared/constants/privileges';
+import { prisma } from '../../config/database';
+import { RoleRepository } from '../../modules/role/repositories/roleRepository';
+import { PRIVILEGES } from '../../shared/constants/privileges';
 import { expandPrivileges, RoleSeedConfig, rolesToSeed } from './rolePrivilegesSeedConfig';
 
 async function main() {
-    await seedRoles(ROLES);
+    await seedRoles(rolesToSeed);
     await seedPrivileges(PRIVILEGES);
     await seedRolesPrivileges(rolesToSeed);
 }
 
-async function seedRoles(roles: typeof ROLES) {
-    for (const role of Object.values(roles)) {
-        const existingRole = await RoleRepository.findByName(role);
+async function seedRoles(roles: RoleSeedConfig[]) {
+    for (const role of roles) {
+        const existingRole = await RoleRepository.findByName(role.name);
 
         if (!existingRole) {
-            await RoleRepository.create({ name: role });
+            await RoleRepository.create({ name: role.name });
         }
 
-        console.log(`Role: ${role} added...`);
+        console.log(`Role: ${role.name} added...`);
     }
 
     console.log('All roles created successfully');
