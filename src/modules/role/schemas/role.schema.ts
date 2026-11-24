@@ -5,10 +5,17 @@ export const RoleIdSchema = z.object({
 });
 
 export const CreateRoleSchema = z.object({
-    name: z.string().min(1).max(100),
+    name: z.string().trim().min(1).max(100),
+    privilegeIds: z.array(z.string().uuid()).default([]),
 });
 
 export type CreateRoleDTO = z.infer<typeof CreateRoleSchema>;
+
+export const UpdateRoleSchema = CreateRoleSchema.extend({
+    privilegeIds: z.array(z.string().uuid()),
+});
+
+export type UpdateRoleDTO = z.infer<typeof UpdateRoleSchema>;
 
 export const UpdateRolePrivilegesSchema = z.object({
     privilegeIds: z.array(z.string().uuid()).min(1),

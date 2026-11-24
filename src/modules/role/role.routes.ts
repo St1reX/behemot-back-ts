@@ -17,6 +17,7 @@ router.get(
 );
 router.get('/:id', requirePrivilege(`${ENTITIES.ROLE}:${ACTIONS.READ}`), RoleController.getRole);
 router.post('/', requirePrivilege(`${ENTITIES.ROLE}:${ACTIONS.CREATE}`), RoleController.createRole);
+router.put('/:id', requirePrivilege(`${ENTITIES.ROLE}:${ACTIONS.UPDATE}`), RoleController.updateRole);
 router.post(
     '/:id/privileges',
     requirePrivilege(`${ENTITIES.ROLE}:${ACTIONS.UPDATE}`),

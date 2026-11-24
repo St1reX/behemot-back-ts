@@ -5,7 +5,7 @@ import { getRequestContext } from '../../infrastructure/requestContext/requestCo
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { RoleRepository } from './repositories/roleRepository';
-import { CreateRoleDTO, UpdateRolePrivilegesDTO } from './schemas/role.schema';
+import { CreateRoleDTO, UpdateRoleDTO, UpdateRolePrivilegesDTO } from './schemas/role.schema';
 import {
     DeleteRoleResponse,
     PrivilegeResponse,
@@ -32,10 +32,11 @@ export class RoleService {
         return role;
     }
 
-    static async createRole(roleData: CreateRoleDTO): Promise<RoleResponse> {
+    static async createRole(roleData: CreateRoleDTO): Promise<RoleDetailsResponse> {
         await this.ensureRoleNameIsAvailable(roleData.name);
+        const privilegeIds = await this.getActivePrivilegeIds(roleData.privilegeIds);
 
-        const createdRole = await RoleRepository.create(roleData);
+        const createdRole = await RoleRepository.create(roleData, privilegeIds);
 
         await createAuditLog({
             entityName: ENTITIES.ROLE,
@@ -47,6 +48,26 @@ export class RoleService {
         });
 
         return createdRole;
+    }
+
+    static async updateRole(roleId: string, roleData: UpdateRoleDTO): Promise<RoleDetailsResponse> {
+        await this.ensureRoleCanBeModified(roleId);
+        const existingRole = await this.getRole(roleId);
+        await this.ensureRoleNameIsAvailable(roleData.name, roleId);
+        const privilegeIds = await this.getActivePrivilegeIds(roleData.privilegeIds);
+
+        const updatedRole = await RoleRepository.update(roleId, roleData.name, privilegeIds);
+
+        await createAuditLog({
+            entityName: ENTITIES.ROLE,
+            entityId: roleId,
+            action: ACTIONS.UPDATE,
+            operationStatus: OperationStatus.SUCCESS,
+            dataBefore: existingRole,
+            dataAfter: updatedRole,
+        });
+
+        return updatedRole;
     }
 
     static async deleteRole(roleId: string): Promise<DeleteRoleResponse> {
@@ -159,8 +180,8 @@ export class RoleService {
         return uniquePrivilegeIds;
     }
 
-    private static async ensureRoleNameIsAvailable(roleName: string) {
-        const existingRole = await RoleRepository.findByName(roleName);
+    private static async ensureRoleNameIsAvailable(roleName: string, excludedRoleId?: string) {
+        const existingRole = await RoleRepository.findByName(roleName, excludedRoleId);
 
         if (existingRole) {
             throw new AppError(ErrorNames.CONFLICT, 409, 'Rola o tej nazwie już istnieje.');

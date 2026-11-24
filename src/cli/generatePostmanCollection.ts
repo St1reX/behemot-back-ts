@@ -184,6 +184,7 @@ const requestBodies: Record<string, ModuleRequestBodies> = {
     role: {
         default: {
             name: 'custom_role',
+            privilegeIds: ['{{privilegeId}}'],
         },
         'POST /role/:id/privileges': {
             privilegeIds: ['{{privilegeId}}'],

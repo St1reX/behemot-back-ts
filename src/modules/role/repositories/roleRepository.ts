@@ -65,10 +65,28 @@ export class RoleRepository {
         });
     }
 
-    static create(roleData: CreateRoleDTO) {
+    static create(roleData: Pick<CreateRoleDTO, 'name'>, privilegeIds: string[] = []) {
         return prisma.role.create({
-            data: roleData,
-            select: roleSelect,
+            data: {
+                name: roleData.name,
+                privileges: {
+                    connect: privilegeIds.map((id) => ({ id })),
+                },
+            },
+            select: roleDetailsSelect,
+        });
+    }
+
+    static update(roleId: string, name: string, privilegeIds: string[]) {
+        return prisma.role.update({
+            where: { id: roleId, deletedAt: null },
+            data: {
+                name,
+                privileges: {
+                    set: privilegeIds.map((id) => ({ id })),
+                },
+            },
+            select: roleDetailsSelect,
         });
     }
 
@@ -140,10 +158,11 @@ export class RoleRepository {
         });
     }
 
-    static findByName(roleName: string) {
+    static findByName(roleName: string, excludedRoleId?: string) {
         return prisma.role.findFirst({
             where: {
                 name: roleName,
+                id: excludedRoleId ? { not: excludedRoleId } : undefined,
                 deletedAt: null,
             },
             select: {
