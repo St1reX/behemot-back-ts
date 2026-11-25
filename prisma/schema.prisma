@@ -315,6 +315,7 @@ model ProductFitment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // A fitment can be linked to multiple listings on the same integration account.
   externalListings ProductExternalListingFitment[]
 }
 
@@ -340,7 +341,8 @@ model ProductExternalListing {
 
   fitments ProductExternalListingFitment[]
 
-  // One active listing per product/channel is enforced by a partial index in SQL.
+  // Multiple listings may share a product, fitment and integration account.
+  // Only the identity of an external offer on its account must be unique.
   @@unique([integrationId, channel, externalId])
   @@index([productId])
   @@index([channel, externalId])

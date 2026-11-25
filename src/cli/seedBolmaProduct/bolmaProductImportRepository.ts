@@ -1,0 +1,95 @@
+import { Prisma, OperationStatus } from '@prisma/client';
+import { RowDataPacket } from 'mysql2/promise';
+import { prisma } from '../../config/database';
+import { env } from '../../config/env';
+import { ACTIONS } from '../../shared/constants/actions';
+import { ENTITIES } from '../../shared/constants/entities';
+import { PRODUCT_CONTENT_VERSIONS } from '../../modules/product/constants/productVersions';
+import { validateProductFitments } from '../../modules/productFitment/validateProductFitments';
+import { bolmaDatabasePool } from '../../modules/integrations/bolma/config/database';
+import { BOLMA_PRODUCT_IMPORT, BOLMA_IMPORT_STATUSES } from './bolmaProductImport.constants';
+import { BolmaProductRow } from './bolmaProductImport.parser';
+import { BolmaImportDictionaries, mapBolmaProduct } from './bolmaProductImport.mapper';
+import { BolmaImportResult } from './bolmaProductImport.report';
+import { readCatalog } from '../../shared/utils/vehicleCatalog';
+
+export class BolmaProductImportRepository {
+    static async readSourceRows(): Promise<RowDataPacket[]> {
+        const [rows] = await bolmaDatabasePool.query<RowDataPacket[]>({
+            sql: `SELECT CAST(p.id AS CHAR) AS id, p.nr_kat, p.id_kat, p.pozycja_magazynowa, p.department_sign
+                FROM products p WHERE p.status = ? ORDER BY p.id ASC`,
+            values: [BOLMA_PRODUCT_IMPORT.ACTIVE_STATUS],
+            timeout: env.BOLMA_PRODUCTS_CATALOG_MYSQL_CONNECT_TIMEOUT_MS,
+        });
+        return rows;
+    }
+
+    static async readDictionaries(): Promise<BolmaImportDictionaries> {
+        const [brands, departments] = await Promise.all([
+            prisma.carBrand.findMany({ where: { deletedAt: null }, include: {
+                models: { where: { deletedAt: null }, include: { carGenerations: { where: { deletedAt: null } } } },
+            } }),
+            prisma.department.findMany({ where: { deletedAt: null }, select: { id: true, shortcut: true } }),
+        ]);
+        return { brands, departments, vehicles: readCatalog() };
+    }
+
+    static async importRecord(row: BolmaProductRow, dictionaries: BolmaImportDictionaries,
+        apply: boolean): Promise<BolmaImportResult> {
+        return prisma.$transaction(async (tx): Promise<BolmaImportResult> => {
+            const conflict = (message: string, productId?: string): BolmaImportResult => ({
+                status: BOLMA_IMPORT_STATUSES.CONFLICT, message, ...(productId ? { productId } : {}),
+            });
+            if (!row.nr_kat) return { status: BOLMA_IMPORT_STATUSES.SKIPPED, message: 'Brak SKU.' };
+
+            // Include soft-deleted products: their SKU must not be silently reassigned.
+            const existing = await tx.product.findMany({
+                where: { sku: row.nr_kat }, select: { id: true, isLegacy: true, deletedAt: true },
+            });
+            if (existing.length > 1) return conflict('SKU wskazuje wiele produktów. Bez zmian.');
+            if (existing.length === 1) {
+                const product = existing[0];
+                if (!product.isLegacy || product.deletedAt) {
+                    return conflict('SKU zajęte przez produkt zarządzany przez Behemotha lub usunięty. Bez zmian.', product.id);
+                }
+                return { status: BOLMA_IMPORT_STATUSES.EXISTING, productId: product.id,
+                    message: 'Istnieje produkt legacy z tym SKU. Pozostawiono bez zmian.' };
+            }
+
+            const mapped = mapBolmaProduct(row, dictionaries);
+            if (!apply) return { status: BOLMA_IMPORT_STATUSES.PLANNED, message: 'Produkt do utworzenia (dry run).',
+                warnings: mapped.warnings, mappedProduct: mapped.data };
+
+            const { productFitments, ...data } = mapped.data;
+            const fitments = await validateProductFitments(tx, productFitments ?? []);
+            // Protect against deleted/changed departments between dictionary read and save.
+            if (data.departmentId) {
+                const department = await tx.department.findFirst({
+                    where: { id: data.departmentId, deletedAt: null }, select: { shortcut: true },
+                });
+                if (department?.shortcut.trim().toUpperCase() !== row.department_sign) {
+                    throw new Error('Dział zmienił się podczas importu; ponów rekord.');
+                }
+            }
+            const product = await tx.product.create({ data: {
+                ...data,
+                isLegacy: true,
+                contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED,
+                productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) },
+            } });
+            // Audit belongs to the same transaction as product + fitments.
+            await tx.log.create({ data: {
+                userId: BOLMA_PRODUCT_IMPORT.AUDIT_USER_ID,
+                entityName: ENTITIES.PRODUCT,
+                entityId: product.id,
+                action: ACTIONS.CREATE,
+                operationStatus: OperationStatus.SUCCESS,
+                comment: `Import Bolma: products / ${row.id}`,
+                dataBefore: Prisma.DbNull,
+                dataAfter: { ...mapped.data, isLegacy: true, contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED },
+            } });
+            return { status: BOLMA_IMPORT_STATUSES.CREATED, productId: product.id, message: 'Utworzono produkt legacy.',
+                warnings: mapped.warnings, mappedProduct: mapped.data };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }
+}

@@ -57,7 +57,7 @@
     },
     {
       "name": "Products",
-      "description": "PRODUCT management. The listing template must belong to the selected department. SKU and non-null EAN must be available. Listing content is rendered from the template; rendering failures are returned in listingContentError. Updating a product queues listing synchronization."
+      "description": "PRODUCT management. The listing template must belong to the selected department. Active products have unique SKU; EAN may repeat. Fitments may specify only a brand, a model or a generation; parent IDs are normalized and validated. Removing a fitment linked to an active external listing is forbidden. Listing content is rendered from the template, with optional custom summary and description; rendering failures are returned in listingContentError. Import allows incomplete products. A full panel save takes over a legacy product and atomically increments contentVersion. Quantity is read-only. A product and its fitments may have multiple active listings on the same integration account and channel. Each external offer identity is unique within its integration account; distinct offer IDs remain separate listings. Synchronization is disabled until real updates are implemented."
     },
     {
       "name": "Product cross-references",
@@ -65,7 +65,7 @@
     },
     {
       "name": "Product fitments",
-      "description": "PRODUCT_FITMENT management. A product can have at most one primary fitment and one fitment for a given car generation."
+      "description": "PRODUCT_FITMENT management. A product can have at most one primary fitment and one fitment for a given brand/model/generation combination. Supply at least one vehicle ID; parent IDs are normalized and validated. A fitment cannot be moved to another product."
     },
     {
       "name": "Product listing templates",
@@ -1090,16 +1090,82 @@
           }
         ],
         "summary": "List records (CAR_BRAND:READ)",
+        "description": "Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 1 when only pageSize is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 25 when only page is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filter names (case-insensitive).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Non-deleted records.",
+            "description": "The complete array, or a page of records with the filtered total.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CarBrand"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CarBrand"
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CarBrand"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "pageSize": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "pageSize"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -1134,12 +1200,32 @@
               }
             }
           },
+          "404": {
+            "description": "Resource or related record not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "413": {
             "description": "Request body exceeds the size limit.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -1687,16 +1773,82 @@
           }
         ],
         "summary": "List records (CAR_GENERATION:READ)",
+        "description": "Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 1 when only pageSize is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 25 when only page is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Exact start or end production year, or \"obecnie\" for ongoing production.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Non-deleted records.",
+            "description": "The complete array, or a page of records with the filtered total.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CarGeneration"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CarGeneration"
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CarGeneration"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "pageSize": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "pageSize"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -1731,12 +1883,32 @@
               }
             }
           },
+          "404": {
+            "description": "Resource or related record not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "413": {
             "description": "Request body exceeds the size limit.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -2283,7 +2455,8 @@
             "cookieAuth": []
           }
         ],
-        "summary": "List generations of a model (CAR_GENERATION:READ)",
+        "summary": "List records (CAR_GENERATION:READ)",
+        "description": "Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.",
         "parameters": [
           {
             "name": "carModelId",
@@ -2293,18 +2466,81 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 1 when only pageSize is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 25 when only page is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Exact start or end production year, or \"obecnie\" for ongoing production.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Generations of the selected non-deleted model.",
+            "description": "The complete array, or a page of records with the filtered total.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CarGeneration"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CarGeneration"
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CarGeneration"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "pageSize": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "pageSize"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -2341,16 +2577,6 @@
           },
           "404": {
             "description": "Resource or related record not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Duplicate data or a relationship prevents this operation.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2413,16 +2639,82 @@
           }
         ],
         "summary": "List records (CAR_MODEL:READ)",
+        "description": "Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 1 when only pageSize is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 25 when only page is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filter names (case-insensitive).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Non-deleted records.",
+            "description": "The complete array, or a page of records with the filtered total.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CarModel"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CarModel"
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CarModel"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "pageSize": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "pageSize"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -2457,12 +2749,32 @@
               }
             }
           },
+          "404": {
+            "description": "Resource or related record not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "413": {
             "description": "Request body exceeds the size limit.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -3009,7 +3321,8 @@
             "cookieAuth": []
           }
         ],
-        "summary": "List models of a brand (CAR_MODEL:READ)",
+        "summary": "List records (CAR_MODEL:READ)",
+        "description": "Without page and pageSize, returns the complete array. Supplying either parameter enables pagination. Search applies only to paginated results.",
         "parameters": [
           {
             "name": "carBrandId",
@@ -3019,18 +3332,81 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 1 when only pageSize is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Enables pagination. Defaults to 25 when only page is supplied.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filter names (case-insensitive).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Models of the selected non-deleted brand.",
+            "description": "The complete array, or a page of records with the filtered total.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CarModel"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CarModel"
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CarModel"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "pageSize": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "pageSize"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -3067,16 +3443,6 @@
           },
           "404": {
             "description": "Resource or related record not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Duplicate data or a relationship prevents this operation.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5228,6 +5594,36 @@
               "schema": {
                 "$ref": "#/components/schemas/ProductInput"
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "description": "JSON-encoded ProductInput. Existing image URLs are retained; uploaded files are appended."
+                  },
+                  "productPhotoes": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "descProductPhotoes": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -5481,13 +5877,43 @@
             }
           }
         ],
-        "description": "All input fields are required, including nullable fields. The listing template must belong to the selected department. SKU and non-null EAN must be available. Listing content is rendered from the template; rendering failures are returned in listingContentError. Updating a product queues listing synchronization.",
+        "description": "All input fields are required, including nullable fields. The listing template must belong to the selected department. Active products have unique SKU; EAN may repeat. Fitments may specify only a brand, a model or a generation; parent IDs are normalized and validated. Removing a fitment linked to an active external listing is forbidden. Listing content is rendered from the template, with optional custom summary and description; rendering failures are returned in listingContentError. Import allows incomplete products. A full panel save takes over a legacy product and atomically increments contentVersion. Quantity is read-only. A product and its fitments may have multiple active listings on the same integration account and channel. Each external offer identity is unique within its integration account; distinct offer IDs remain separate listings. Synchronization is disabled until real updates are implemented.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProductInput"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "description": "JSON-encoded ProductInput. Existing image URLs are retained; uploaded files are appended."
+                  },
+                  "productPhotoes": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "descProductPhotoes": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
               }
             }
           }
@@ -6675,7 +7101,7 @@
             }
           }
         ],
-        "description": "All input fields are required, including nullable fields. A product can have at most one primary fitment and one fitment for a given car generation.",
+        "description": "All input fields are required, including nullable fields. A product can have at most one primary fitment and one fitment for a given brand/model/generation combination. Supply at least one vehicle ID; parent IDs are normalized and validated. A fitment cannot be moved to another product.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6810,7 +7236,7 @@
             }
           }
         ],
-        "description": "The primary fitment cannot be deleted directly.",
+        "description": "Primary fitments and fitments linked to active external listings cannot be deleted directly.",
         "responses": {
           "200": {
             "description": "Record deleted.",
@@ -12300,19 +12726,10 @@
                   "description": {
                     "type": "string",
                     "example": "Decimal serialized as a JSON string."
-                  }
-                }
-              },
-              "quantity": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "integer"
                   },
-                  "minimum": {
-                    "type": "number",
-                    "example": 0
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -12330,6 +12747,32 @@
                   "maxLength": {
                     "type": "number",
                     "example": 255
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "customSummary": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "customDescription": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
                   },
                   "nullable": {
                     "type": "boolean",
@@ -12368,6 +12811,10 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -12385,6 +12832,10 @@
                   "description": {
                     "type": "string",
                     "example": "Decimal serialized as a JSON string."
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -12402,6 +12853,10 @@
                   "description": {
                     "type": "string",
                     "example": "Decimal serialized as a JSON string."
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -12419,6 +12874,10 @@
                   "description": {
                     "type": "string",
                     "example": "Decimal serialized as a JSON string."
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -12502,457 +12961,6 @@
                     "type": "string",
                     "example": "string"
                   },
-                  "minLength": {
-                    "type": "number",
-                    "example": 1
-                  }
-                }
-              },
-              "title": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "nullable": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              },
-              "summary": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "nullable": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              },
-              "description": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "nullable": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              },
-              "listingContentError": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "nullable": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              },
-              "warehouse": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "format": {
-                            "type": "string",
-                            "example": "uuid"
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "name"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "listingTemplate": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "format": {
-                            "type": "string",
-                            "example": "uuid"
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "name"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "department": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "format": {
-                            "type": "string",
-                            "example": "uuid"
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      },
-                      "shortcut": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "name",
-                      "shortcut"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "producer": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "format": {
-                            "type": "string",
-                            "example": "uuid"
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "name"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "primaryFitment": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "format": {
-                            "type": "string",
-                            "example": "uuid"
-                          }
-                        }
-                      },
-                      "isPrimary": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "boolean"
-                          }
-                        }
-                      },
-                      "carGeneration": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "object"
-                          },
-                          "properties": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "example": "string"
-                                  },
-                                  "format": {
-                                    "type": "string",
-                                    "example": "uuid"
-                                  }
-                                }
-                              },
-                              "startProduction": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "example": "integer"
-                                  }
-                                }
-                              },
-                              "endProduction": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "example": "integer"
-                                  },
-                                  "nullable": {
-                                    "type": "boolean",
-                                    "example": true
-                                  }
-                                }
-                              },
-                              "carModel": {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "example": "object"
-                                  },
-                                  "properties": {
-                                    "type": "object",
-                                    "properties": {
-                                      "id": {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "example": "string"
-                                          },
-                                          "format": {
-                                            "type": "string",
-                                            "example": "uuid"
-                                          }
-                                        }
-                                      },
-                                      "name": {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "example": "string"
-                                          }
-                                        }
-                                      },
-                                      "carBrand": {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "example": "object"
-                                          },
-                                          "properties": {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "type": {
-                                                    "type": "string",
-                                                    "example": "string"
-                                                  },
-                                                  "format": {
-                                                    "type": "string",
-                                                    "example": "uuid"
-                                                  }
-                                                }
-                                              },
-                                              "name": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "type": {
-                                                    "type": "string",
-                                                    "example": "string"
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "required": {
-                                            "type": "array",
-                                            "example": [
-                                              "id",
-                                              "name"
-                                            ],
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "required": {
-                                    "type": "array",
-                                    "example": [
-                                      "id",
-                                      "name",
-                                      "carBrand"
-                                    ],
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "required": {
-                            "type": "array",
-                            "example": [
-                              "id",
-                              "startProduction",
-                              "endProduction",
-                              "carModel"
-                            ],
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "isPrimary",
-                      "carGeneration"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  },
                   "nullable": {
                     "type": "boolean",
                     "example": true
@@ -12995,6 +13003,153 @@
                               "type": {
                                 "type": "string",
                                 "example": "boolean"
+                              }
+                            }
+                          },
+                          "carBrand": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "object"
+                              },
+                              "properties": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      },
+                                      "format": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                      }
+                                    }
+                                  },
+                                  "name": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "required": {
+                                "type": "array",
+                                "example": [
+                                  "id",
+                                  "name"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "carModel": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "object"
+                              },
+                              "properties": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      },
+                                      "format": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                      }
+                                    }
+                                  },
+                                  "name": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      }
+                                    }
+                                  },
+                                  "carBrand": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "object"
+                                      },
+                                      "properties": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "example": "string"
+                                              },
+                                              "format": {
+                                                "type": "string",
+                                                "example": "uuid"
+                                              }
+                                            }
+                                          },
+                                          "name": {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "example": "string"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "required": {
+                                        "type": "array",
+                                        "example": [
+                                          "id",
+                                          "name"
+                                        ],
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "required": {
+                                "type": "array",
+                                "example": [
+                                  "id",
+                                  "name",
+                                  "carBrand"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
                               }
                             }
                           },
@@ -13149,6 +13304,10 @@
                                 "items": {
                                   "type": "string"
                                 }
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
                               }
                             }
                           }
@@ -13159,7 +13318,892 @@
                         "example": [
                           "id",
                           "isPrimary",
+                          "carBrand",
+                          "carModel",
                           "carGeneration"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "isLegacy": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "readOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "contentVersion": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "integer"
+                  },
+                  "minimum": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "readOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "quantity": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "integer"
+                  },
+                  "minimum": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "readOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "title": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "summary": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "listingContentError": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "warehouse": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "listingTemplate": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "department": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      },
+                      "shortcut": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name",
+                      "shortcut"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "producer": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "primaryFitment": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "isPrimary": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "boolean"
+                          }
+                        }
+                      },
+                      "carBrand": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "object"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  },
+                                  "format": {
+                                    "type": "string",
+                                    "example": "uuid"
+                                  }
+                                }
+                              },
+                              "name": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "required": {
+                            "type": "array",
+                            "example": [
+                              "id",
+                              "name"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "nullable": {
+                            "type": "boolean",
+                            "example": true
+                          }
+                        }
+                      },
+                      "carModel": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "object"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  },
+                                  "format": {
+                                    "type": "string",
+                                    "example": "uuid"
+                                  }
+                                }
+                              },
+                              "name": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  }
+                                }
+                              },
+                              "carBrand": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "object"
+                                  },
+                                  "properties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "example": "string"
+                                          },
+                                          "format": {
+                                            "type": "string",
+                                            "example": "uuid"
+                                          }
+                                        }
+                                      },
+                                      "name": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "example": "string"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "required": {
+                                    "type": "array",
+                                    "example": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "required": {
+                            "type": "array",
+                            "example": [
+                              "id",
+                              "name",
+                              "carBrand"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "nullable": {
+                            "type": "boolean",
+                            "example": true
+                          }
+                        }
+                      },
+                      "carGeneration": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "object"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  },
+                                  "format": {
+                                    "type": "string",
+                                    "example": "uuid"
+                                  }
+                                }
+                              },
+                              "startProduction": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "integer"
+                                  }
+                                }
+                              },
+                              "endProduction": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "integer"
+                                  },
+                                  "nullable": {
+                                    "type": "boolean",
+                                    "example": true
+                                  }
+                                }
+                              },
+                              "carModel": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "object"
+                                  },
+                                  "properties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "example": "string"
+                                          },
+                                          "format": {
+                                            "type": "string",
+                                            "example": "uuid"
+                                          }
+                                        }
+                                      },
+                                      "name": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "example": "string"
+                                          }
+                                        }
+                                      },
+                                      "carBrand": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "example": "object"
+                                          },
+                                          "properties": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "example": "string"
+                                                  },
+                                                  "format": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                  }
+                                                }
+                                              },
+                                              "name": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "example": "string"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "required": {
+                                            "type": "array",
+                                            "example": [
+                                              "id",
+                                              "name"
+                                            ],
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "required": {
+                                    "type": "array",
+                                    "example": [
+                                      "id",
+                                      "name",
+                                      "carBrand"
+                                    ],
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "required": {
+                            "type": "array",
+                            "example": [
+                              "id",
+                              "startProduction",
+                              "endProduction",
+                              "carModel"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "nullable": {
+                            "type": "boolean",
+                            "example": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "isPrimary",
+                      "carBrand",
+                      "carModel",
+                      "carGeneration"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "externalListings": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "example": "object"
+                      },
+                      "properties": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              }
+                            }
+                          },
+                          "integrationId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              }
+                            }
+                          },
+                          "integration": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "object"
+                              },
+                              "properties": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      },
+                                      "format": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                      }
+                                    }
+                                  },
+                                  "name": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "example": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "required": {
+                                "type": "array",
+                                "example": [
+                                  "id",
+                                  "name"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "lastSyncedContentVersion": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "integer"
+                              },
+                              "minimum": {
+                                "type": "number",
+                                "example": 1
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "channel": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "enum": {
+                                "type": "array",
+                                "example": [
+                                  "ALLEGRO",
+                                  "BASELINKER",
+                                  "PRESTASHOP"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "externalId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "syncStatus": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "enum": {
+                                "type": "array",
+                                "example": [
+                                  "PENDING",
+                                  "SYNCED",
+                                  "FAILED"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "lastSyncedAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "lastError": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": {
+                        "type": "array",
+                        "example": [
+                          "id",
+                          "integrationId",
+                          "integration",
+                          "lastSyncedContentVersion",
+                          "channel",
+                          "externalId",
+                          "syncStatus",
+                          "lastSyncedAt",
+                          "lastError"
                         ],
                         "items": {
                           "type": "string"
@@ -13204,8 +14248,9 @@
               "imagesUrls",
               "descriptionImagesUrls",
               "price",
-              "quantity",
               "customName",
+              "customSummary",
+              "customDescription",
               "internalNote",
               "side",
               "weight",
@@ -13216,6 +14261,10 @@
               "ean",
               "oem",
               "warehouseLocation",
+              "productFitments",
+              "isLegacy",
+              "contentVersion",
+              "quantity",
               "title",
               "summary",
               "description",
@@ -13225,7 +14274,7 @@
               "department",
               "producer",
               "primaryFitment",
-              "productFitments",
+              "externalListings",
               "createdAt",
               "updatedAt"
             ],
@@ -13310,19 +14359,6 @@
                   }
                 }
               },
-              "quantity": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "integer"
-                  },
-                  "minimum": {
-                    "type": "number",
-                    "example": 0
-                  }
-                }
-              },
               "customName": {
                 "type": "object",
                 "properties": {
@@ -13337,6 +14373,32 @@
                   "maxLength": {
                     "type": "number",
                     "example": 255
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "customSummary": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "customDescription": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
                   },
                   "nullable": {
                     "type": "boolean",
@@ -13598,6 +14660,115 @@
                     "example": "uuid"
                   }
                 }
+              },
+              "productFitments": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "example": "object"
+                      },
+                      "properties": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              }
+                            }
+                          },
+                          "carBrandId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "carModelId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "carGenerationId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "isPrimary": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": {
+                        "type": "array",
+                        "example": [
+                          "isPrimary"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Optional full replacement of fitments, saved atomically with the product. Keep IDs of existing fitments. A non-empty list must have exactly one primary fitment."
+                  }
+                }
               }
             }
           },
@@ -13607,7 +14778,6 @@
               "imagesUrls",
               "descriptionImagesUrls",
               "price",
-              "quantity",
               "customName",
               "internalNote",
               "side",
@@ -13963,6 +15133,153 @@
                   }
                 }
               },
+              "carBrand": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "carModel": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "format": {
+                            "type": "string",
+                            "example": "uuid"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      },
+                      "carBrand": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "object"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  },
+                                  "format": {
+                                    "type": "string",
+                                    "example": "uuid"
+                                  }
+                                }
+                              },
+                              "name": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "example": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "required": {
+                            "type": "array",
+                            "example": [
+                              "id",
+                              "name"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name",
+                      "carBrand"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
               "carGeneration": {
                 "type": "object",
                 "properties": {
@@ -14114,6 +15431,10 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -14159,6 +15480,8 @@
             "example": [
               "id",
               "product",
+              "carBrand",
+              "carModel",
               "carGeneration",
               "isPrimary",
               "createdAt",
@@ -14193,6 +15516,40 @@
                   }
                 }
               },
+              "carBrandId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uuid"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "carModelId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uuid"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
               "carGenerationId": {
                 "type": "object",
                 "properties": {
@@ -14203,6 +15560,10 @@
                   "format": {
                     "type": "string",
                     "example": "uuid"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -14221,7 +15582,6 @@
             "type": "array",
             "example": [
               "productId",
-              "carGenerationId",
               "isPrimary"
             ],
             "items": {

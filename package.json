@@ -14,6 +14,8 @@
         "postman-generate": "ts-node --files src/cli/generatePostmanCollection.ts",
         "bootstrap": "ts-node --files src/cli/boostrap/seed/seedRolesPrivileges.ts && ts-node --files src/cli/boostrap/seed/seedDepartments.ts",
         "db-seed:vehicles": "ts-node --files src/cli/seed/seedVehicles.ts",
+        "db-seed:bolma-products": "ts-node --files src/cli/seedBolmaProduct/main.ts",
+        "db-seed:bolma-products:apply": "ts-node --files src/cli/seedBolmaProduct/main.ts --apply",
         "auth:assign-role": "ts-node --files src/cli/boostrap/auth/assignUserRole.ts",
         "auth:grant-all-privileges": "ts-node --files src/cli/boostrap/auth/grantAllRolePrivileges.ts"
     },

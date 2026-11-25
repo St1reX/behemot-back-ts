@@ -2,7 +2,7 @@ import { PRODUCT_CONTENT_VERSIONS } from '../constants/productVersions';
 import { AppError, ErrorNames } from '../../../errors/errorHandler';
 import { validateProductFitments } from '../../productFitment/validateProductFitments';
 import { prisma } from '../../../config/database';
-import { CreateProductDTO, ImportProductDTO, UpdateProductDTO } from '../schemas/product.schema';
+import { CreateProductDTO, UpdateProductDTO } from '../schemas/product.schema';
 
 const productSelect = {
     id: true,
@@ -149,22 +149,6 @@ export class ProductRepository {
             const fitments = await validateProductFitments(tx, productFitments ?? []);
             return tx.product.create({
                 data: { ...data, isLegacy: false, contentVersion: PRODUCT_CONTENT_VERSIONS.INITIAL, productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) } },
-                select: productSelect,
-            });
-        });
-    }
-
-    static createImported(productData: ImportProductDTO) {
-        return prisma.$transaction(async (tx) => {
-            const { productFitments, ...data } = productData;
-            const fitments = await validateProductFitments(tx, productFitments ?? []);
-            return tx.product.create({
-                data: {
-                    ...data,
-                    isLegacy: true,
-                    contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED,
-                    productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) },
-                },
                 select: productSelect,
             });
         });
