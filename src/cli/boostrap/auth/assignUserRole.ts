@@ -1,5 +1,5 @@
-import { prisma } from '../../config/database';
-import { RoleRepository } from '../../modules/role/repositories/roleRepository';
+import { prisma } from '../../../config/database';
+import { RoleRepository } from '../../../modules/role/repositories/roleRepository';
 import { selectOption } from '../shared/selectOption';
 
 async function main() {
@@ -20,7 +20,7 @@ async function main() {
     ]);
 
     if (users.length === 0 || roles.length === 0) {
-        throw new Error('Brak kont lub ról. Utwórz konto i uruchom npm run db-seed.');
+        throw new Error('Brak kont lub ról. Utwórz konto i uruchom npm run bootstrap.');
     }
 
     const user = await selectOption('Wybierz konto:', users.map((user) => ({

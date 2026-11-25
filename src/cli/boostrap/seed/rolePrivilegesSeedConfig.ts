@@ -1,6 +1,6 @@
-import { ROLES, RoleName } from '../../shared/constants/roles';
-import { PRIVILEGES, PrivilegesValue } from '../../shared/constants/privileges';
-import { ENTITIES, Entity } from '../../shared/constants/entities';
+import { ROLES, RoleName } from '../../../shared/constants/roles';
+import { PRIVILEGES, PrivilegesValue } from '../../../shared/constants/privileges';
+import { ENTITIES, Entity } from '../../../shared/constants/entities';
 
 // Wartości const do mapy uprawnień
 const EntitiesValuesArray = Object.values(ENTITIES);

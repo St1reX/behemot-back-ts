@@ -4,7 +4,7 @@ Polecenia uruchamiaj z katalogu backendu. Narzędzia do zarządzania rolami korz
 
 | Polecenie | Działanie |
 | --- | --- |
-| `npm run db-seed` | Tworzy role systemowe i uprawnienia; nadpisuje uprawnienia ról `superadmin`, `admin` i `user` zgodnie z `seed/rolePrivilegesSeedConfig.ts`. |
+| `npm run bootstrap` | Uruchamia kolejno wymagane seedery: role i uprawnienia, a następnie podstawowe działy. Nadpisuje uprawnienia ról `superadmin`, `admin` i `user` zgodnie z `boostrap/seed/rolePrivilegesSeedConfig.ts`. Dodaje działy B — Błotniki, SS — StefanStanley, P — Progi, O — Opaski; identyczne aktywne wpisy pomija, a konflikt nazwy lub skrótu wycofuje transakcję działów. Nie uruchamia migracji ani seedera pojazdów. |
 | `npm run auth:assign-role` | Pozwala wybrać konto i nadać mu istniejącą rolę. Nie zmienia statusu aktywacji konta. |
 | `npm run auth:grant-all-privileges` | Pozwala wybrać rolę, tworzy lub przywraca uprawnienia z konfiguracji aplikacji i nadaje je tej roli. Dotyczy to również uprawnień `ROLE` i `USER`. |
 | `npm run swagger-generate` | Generuje `src/swagger/swagger_output.json` z plików `src/modules/**/docs/*.docs.js` oraz wspólnych opisów w `src/swagger/docs`. Sprawdza zgodność listy metod i ścieżek z deklaracjami tras. Nie uruchamia API ani nie łączy się z bazą. |
@@ -12,18 +12,18 @@ Polecenia uruchamiaj z katalogu backendu. Narzędzia do zarządzania rolami korz
 
 W skryptach `auth` wybieraj strzałkami ↑/↓ i zatwierdzaj Enterem. Esc lub Ctrl+C anuluje wybór bez zapisu. Długie listy są stronicowane automatycznie.
 
-`auth` zawiera narzędzia do ręcznej zmiany dostępu, a `seed` — konfigurację i skrypt seedera. Generator Postmana i kopiowanie zasobów pozostają w głównym katalogu `cli`.
+`boostrap` zawiera skrypty przygotowania świeżej aplikacji z podziałem na `auth` (zmiana dostępu), `seed` (role i uprawnienia) oraz `shared` (obsługa wyboru w terminalu). Seedery zewnętrznych danych, w tym katalogu pojazdów, pozostają poziom wyżej w `cli/seed`. Generator Postmana i kopiowanie zasobów pozostają w głównym katalogu `cli`.
 
-Ponowne uruchomienie `db-seed` przywraca skonfigurowany zestaw uprawnień ról systemowych, również jeśli wcześniej rozszerzono go skryptem `auth:grant-all-privileges`.
+Polecenie `bootstrap` przerywa pracę po błędzie seedera. Seedery zapisują dane osobno: błąd działów nie cofa wcześniejszego seedowania ról i uprawnień. Ponowne uruchomienie przywraca skonfigurowany zestaw uprawnień ról systemowych, również jeśli wcześniej rozszerzono go skryptem `auth:grant-all-privileges`.
 
 ## Stały seeder katalogu pojazdów
 
 ```sh
 npm run db-seed:vehicles
-npm run db-seed:vehicles:commit
+npm run db-seed:vehicles -- --apply
 ```
 
-Pierwsze polecenie tworzy raport Excel bez zapisu do bazy. Drugie najpierw zapisuje raport, a następnie dopisuje brakujące marki, modele i generacje w jednej transakcji PostgreSQL. Raport domyślnie trafia do `reports/vehicle-seed-<czas>.xlsx`; istniejący plik nie jest nadpisywany. Opcjonalne argumenty skryptu to `--dry-run`, `--commit`, `--output` i `--help`. Osobne polecenie zapisu eliminuje konieczność przekazywania `--commit` przez npm.
+Pierwsze polecenie tworzy raport Excel bez zapisu do bazy. Drugie najpierw zapisuje raport, a następnie dopisuje brakujące marki, modele i generacje w jednej transakcji PostgreSQL. Raport domyślnie trafia do `reports/vehicle-seed-<czas>.xlsx`; istniejący plik nie jest nadpisywany. Opcjonalne argumenty skryptu to `--dry-run`, `--apply`, `--output` i `--help`; przekazuj je po separatorze `--`. Bez `--apply` skrypt zawsze działa bez zapisu do bazy.
 
 Cały seeder i dane znajdują się w `src/cli/seed/seedVehicles.ts`. Zastępuje on poprzedni importer Bolmy; stare polecenia `bolma:import-vehicles` zostały usunięte. Nie pobiera danych z MySQL ani strony i nie parsuje tytułów podczas uruchomienia. Zawiera stały, przejrzany snapshot dwóch list strony dostarczonych przez użytkownika 24.11.2026: 877 pozycji oraz cztery grupy bez modeli. `sourceCategories` zachowuje oryginalne grupy marek, tytuły i identyfikatory, a `vehicleCatalog` zawiera już ustalone marki, nazwy modeli z wariantami i zakresy produkcji. Aktualizacja katalogu wymaga jawnej zmiany danych seedera. Dry run nie inicjalizuje połączenia do bazy; zapis korzysta ze wspólnej konfiguracji `.env` backendu.
 

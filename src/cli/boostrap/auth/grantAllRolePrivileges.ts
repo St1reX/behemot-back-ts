@@ -1,12 +1,12 @@
-import { prisma } from '../../config/database';
-import { RoleRepository } from '../../modules/role/repositories/roleRepository';
-import { PRIVILEGES } from '../../shared/constants/privileges';
+import { prisma } from '../../../config/database';
+import { RoleRepository } from '../../../modules/role/repositories/roleRepository';
+import { PRIVILEGES } from '../../../shared/constants/privileges';
 import { selectOption } from '../shared/selectOption';
 
 async function main() {
     const roles = await RoleRepository.findAll();
     if (roles.length === 0) {
-        throw new Error('Brak ról. Najpierw uruchom npm run db-seed.');
+        throw new Error('Brak ról. Najpierw uruchom npm run bootstrap.');
     }
 
     console.log('Skrypt nada wybranej roli wszystkie uprawnienia, w tym zarządzanie rolami i użytkownikami.');
@@ -33,7 +33,7 @@ async function main() {
     }, { timeout: 30_000 });
 
     console.log(`Nadano roli „${role.name}” wszystkie ${PRIVILEGES.length} uprawnień z konfiguracji aplikacji.`);
-    console.log('Uruchomienie npm run db-seed przywróci uprawnienia ról systemowych zgodnie z konfiguracją seedera.');
+    console.log('Uruchomienie npm run bootstrap przywróci uprawnienia ról systemowych zgodnie z konfiguracją seedera.');
 }
 
 main()

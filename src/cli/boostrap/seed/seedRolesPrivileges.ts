@@ -1,6 +1,6 @@
-import { prisma } from '../../config/database';
-import { RoleRepository } from '../../modules/role/repositories/roleRepository';
-import { PRIVILEGES } from '../../shared/constants/privileges';
+import { prisma } from '../../../config/database';
+import { RoleRepository } from '../../../modules/role/repositories/roleRepository';
+import { PRIVILEGES } from '../../../shared/constants/privileges';
 import { expandPrivileges, RoleSeedConfig, rolesToSeed } from './rolePrivilegesSeedConfig';
 
 async function main() {

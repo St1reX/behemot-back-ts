@@ -4,14 +4,19 @@ src/
 |   `-- pdf-templates/
 |
 |-- cli/
-|   |-- auth/
-|   |   |-- assignUserRole.ts
-|   |   `-- grantAllRolePrivileges.ts
+|   |-- boostrap/
+|   |   |-- auth/
+|   |   |   |-- assignUserRole.ts
+|   |   |   `-- grantAllRolePrivileges.ts
+|   |   |-- seed/
+|   |   |   |-- rolePrivilegesSeedConfig.ts
+|   |   |   |-- seedDepartments.ts
+|   |   |   `-- seedRolesPrivileges.ts
+|   |   `-- shared/
+|   |       `-- selectOption.ts
 |   |-- seed/
-|   |   |-- rolePrivilegesSeedConfig.ts
-|   |   `-- seedRolesPrivileges.ts
-|   |-- shared/
-|   |   `-- selectOption.ts
+|   |   `-- seedVehicles.ts
+|   |-- README.md
 |   |-- copyStaticAssets.ts
 |   `-- generatePostmanCollection.ts
 |

@@ -2202,23 +2202,23 @@ async function saveVehicles(vehicles: SeedVehicle[]) {
 
 async function main(): Promise<void> {
     const { values } = parseArgs({ options: {
-        'dry-run': { type: 'boolean' }, commit: { type: 'boolean' },
+        'dry-run': { type: 'boolean' }, apply: { type: 'boolean' },
         output: { type: 'string' }, help: { type: 'boolean' },
     } });
     if (values.help) {
         console.log('Raport bez zapisu do bazy: npm run db-seed:vehicles');
-        console.log('Zapis do bazy: npm run db-seed:vehicles:commit');
-        console.log('Opcjonalne argumenty: --dry-run, --commit, --output reports/vehicles.xlsx');
+        console.log('Zapis do bazy: npm run db-seed:vehicles -- --apply');
+        console.log('Opcjonalne argumenty po --: --dry-run, --apply, --output reports/vehicles.xlsx, --help');
         return;
     }
-    if (values['dry-run'] && values.commit) throw new Error('Wybierz --dry-run albo --commit.');
+    if (values['dry-run'] && values.apply) throw new Error('Wybierz --dry-run albo --apply.');
     const vehicles = readCatalog();
     const outputPath = resolve(values.output ?? `reports/vehicle-seed-${new Date().toISOString().replace(/[:.]/gu, '-')}.xlsx`);
     if (extname(outputPath).toLowerCase() !== '.xlsx') throw new Error('Raport musi mieć rozszerzenie .xlsx.');
     await writeReport(outputPath, vehicles);
     console.log(`Raport stałego katalogu: ${outputPath}`);
     console.log(`Marki: ${Object.keys(vehicleCatalog).length}. Wpisy katalogu: ${vehicles.length}. Źródła: ${Object.keys(sourceCategories).length}.`);
-    if (!values.commit) {
+    if (!values.apply) {
         console.log('Dry run zakończony. Nie zapisano danych w bazie.');
         return;
     }
