@@ -63,8 +63,11 @@ model Integration {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  externalListings ProductExternalListing[]
+
+  @@unique([id, channel])
   @@index([channel])
-  @@index([channel, externalAccountId])
+  @@unique([channel, externalAccountId])
 }
 
 model Role {
@@ -248,38 +251,41 @@ model Warehouse {
 model Product {
   id String @id @default(uuid())
 
+  isLegacy Boolean @default(false)
+  contentVersion Int @default(1)
+
   imagesUrls            String[]
   descriptionImagesUrls String[]
-  price                 Decimal  @db.Decimal(6, 2)
-  quantity              Int
+  price                 Decimal? @db.Decimal(6, 2)
+  quantity              Int?
 
   customName   String?
   customSummary String?
   customDescription String?
   internalNote String?
-  side         ProductSide @default(NONE)
+  side         ProductSide?
 
-  weight Decimal  @db.Decimal(6, 2)
-  length Decimal  @db.Decimal(6, 2)
-  width  Decimal  @db.Decimal(6, 2)
+  weight Decimal? @db.Decimal(6, 2)
+  length Decimal? @db.Decimal(6, 2)
+  width  Decimal? @db.Decimal(6, 2)
   height Decimal? @db.Decimal(6, 2)
 
   sku String
   ean String?
   oem String[]
 
-  warehouseLocation String
-  warehouseId       String
-  warehouse         Warehouse @relation(fields: [warehouseId], references: [id])
+  warehouseLocation String?
+  warehouseId       String?
+  warehouse         Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
 
-  listingTemplateId String
-  listingTemplate   ProductListingTemplate @relation(fields: [listingTemplateId], references: [id])
+  listingTemplateId String?
+  listingTemplate   ProductListingTemplate? @relation(fields: [listingTemplateId], references: [id], onDelete: Restrict)
 
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
 
-  producerId String
-  producer   Producer @relation(fields: [producerId], references: [id])
+  producerId String?
+  producer   Producer? @relation(fields: [producerId], references: [id], onDelete: Restrict)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -320,10 +326,13 @@ model ProductExternalListing {
 
   channel    IntegrationChannel
   externalId String?
+  integrationId String
+  integration Integration @relation(fields: [integrationId, channel], references: [id, channel], onDelete: Restrict)
 
   syncStatus  IntegrationSyncStatus @default(PENDING)
   lastSyncedAt DateTime?
   lastError    String?
+  lastSyncedContentVersion Int?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -331,6 +340,8 @@ model ProductExternalListing {
 
   fitments ProductExternalListingFitment[]
 
+  // One active listing per product/channel is enforced by a partial index in SQL.
+  @@unique([integrationId, channel, externalId])
   @@index([productId])
   @@index([channel, externalId])
   @@index([syncStatus])

@@ -5,6 +5,8 @@ import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { ProductController } from './product.controller';
 
+import { productUpload } from './uploads/product.upload';
+
 const router = Router();
 
 router.use(requireAuth);
@@ -18,11 +20,13 @@ router.get(
 router.post(
     '/',
     requirePrivilege(`${ENTITIES.PRODUCT}:${ACTIONS.CREATE}`),
+    productUpload,
     ProductController.createProduct,
 );
 router.put(
     '/:id',
     requirePrivilege(`${ENTITIES.PRODUCT}:${ACTIONS.UPDATE}`),
+    productUpload,
     ProductController.updateProduct,
 );
 router.delete(

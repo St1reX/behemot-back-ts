@@ -1,10 +1,13 @@
+import { PRODUCT_CONTENT_VERSIONS } from '../constants/productVersions';
 import { AppError, ErrorNames } from '../../../errors/errorHandler';
 import { validateProductFitments } from '../../productFitment/validateProductFitments';
 import { prisma } from '../../../config/database';
-import { CreateProductDTO, UpdateProductDTO } from '../schemas/product.schema';
+import { CreateProductDTO, ImportProductDTO, UpdateProductDTO } from '../schemas/product.schema';
 
 const productSelect = {
     id: true,
+    isLegacy: true,
+    contentVersion: true,
     imagesUrls: true,
     descriptionImagesUrls: true,
     price: true,
@@ -90,25 +93,29 @@ const productSelect = {
     },
     externalListings: {
         where: { deletedAt: null },
-        select: { id: true, channel: true, externalId: true, syncStatus: true, lastSyncedAt: true, lastError: true },
+        select: {
+            id: true,
+            integrationId: true,
+            integration: { select: { id: true, name: true } },
+            channel: true,
+            externalId: true,
+            syncStatus: true,
+            lastSyncedAt: true,
+            lastError: true,
+            lastSyncedContentVersion: true,
+        },
     },
     createdAt: true,
     updatedAt: true,
 };
 
 const activeProductRelationsWhere = {
-    warehouse: {
-        deletedAt: null,
-    },
-    listingTemplate: {
-        deletedAt: null,
-    },
-    department: {
-        deletedAt: null,
-    },
-    producer: {
-        deletedAt: null,
-    },
+    AND: [
+        { OR: [{ warehouseId: null }, { warehouse: { deletedAt: null } }] },
+        { OR: [{ listingTemplateId: null }, { listingTemplate: { deletedAt: null } }] },
+        { OR: [{ departmentId: null }, { department: { deletedAt: null } }] },
+        { OR: [{ producerId: null }, { producer: { deletedAt: null } }] },
+    ],
 };
 
 export class ProductRepository {
@@ -141,7 +148,23 @@ export class ProductRepository {
             const { productFitments, ...data } = productData;
             const fitments = await validateProductFitments(tx, productFitments ?? []);
             return tx.product.create({
-                data: { ...data, productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) } },
+                data: { ...data, isLegacy: false, contentVersion: PRODUCT_CONTENT_VERSIONS.INITIAL, productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) } },
+                select: productSelect,
+            });
+        });
+    }
+
+    static createImported(productData: ImportProductDTO) {
+        return prisma.$transaction(async (tx) => {
+            const { productFitments, ...data } = productData;
+            const fitments = await validateProductFitments(tx, productFitments ?? []);
+            return tx.product.create({
+                data: {
+                    ...data,
+                    isLegacy: true,
+                    contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED,
+                    productFitments: { create: fitments.map(({ id: _id, ...fitment }) => fitment) },
+                },
                 select: productSelect,
             });
         });
@@ -172,7 +195,7 @@ export class ProductRepository {
                     else await tx.productFitment.create({ data: { ...fitment, productId } });
                 }
             }
-            return tx.product.update({ where: { id: productId, deletedAt: null }, data, select: productSelect });
+            return tx.product.update({ where: { id: productId, deletedAt: null }, data: { ...data, isLegacy: false, contentVersion: { increment: 1 } }, select: productSelect });
         });
     }
 
@@ -280,6 +303,16 @@ export class ProductRepository {
             select: {
                 id: true,
             },
+        });
+    }
+
+    static findReferencingImages(urls: string[]) {
+        return prisma.product.findMany({
+            where: { OR: [
+                { imagesUrls: { hasSome: urls } },
+                { descriptionImagesUrls: { hasSome: urls } },
+            ] },
+            select: { imagesUrls: true, descriptionImagesUrls: true },
         });
     }
 

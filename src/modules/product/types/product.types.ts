@@ -3,48 +3,53 @@ import { ProductSide } from '../../../shared/constants/productSides';
 
 export interface ProductResponse {
     id: string;
+    isLegacy: boolean;
+    contentVersion: number;
     title: string | null;
     summary: string | null;
     description: string | null;
     listingContentError: string | null;
     imagesUrls: string[];
     descriptionImagesUrls: string[];
-    price: Prisma.Decimal;
-    quantity: number;
+    price: Prisma.Decimal | null;
+    quantity: number | null;
     customName: string | null;
     customSummary: string | null;
     customDescription: string | null;
     internalNote: string | null;
-    side: ProductSide;
-    weight: Prisma.Decimal;
-    length: Prisma.Decimal;
-    width: Prisma.Decimal;
+    side: ProductSide | null;
+    weight: Prisma.Decimal | null;
+    length: Prisma.Decimal | null;
+    width: Prisma.Decimal | null;
     height: Prisma.Decimal | null;
     sku: string;
     ean: string | null;
     oem: string[];
-    warehouseLocation: string;
+    warehouseLocation: string | null;
     warehouse: {
         id: string;
         name: string;
-    };
+    } | null;
     listingTemplate: {
         id: string;
         name: string;
-    };
+    } | null;
     department: {
         id: string;
         name: string;
         shortcut: string;
-    };
+    } | null;
     producer: {
         id: string;
         name: string;
-    };
+    } | null;
     primaryFitment: ProductResponseFitment | null;
     productFitments: ProductResponseFitment[];
     externalListings: {
         id: string;
+        integrationId: string;
+        integration: { id: string; name: string };
+        lastSyncedContentVersion: number | null;
         channel: IntegrationChannel;
         externalId: string | null;
         syncStatus: IntegrationSyncStatus;
@@ -87,4 +92,5 @@ export interface ProductListingSyncJobData {
 export interface ProductListingSyncJobResult {
     productId: string;
     activeListingsCount: number;
+    skipped: true;
 }

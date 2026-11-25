@@ -16,6 +16,9 @@ import swaggerFile from './swagger/swagger_output.json';
 import { attachUserToRequestContext } from './middlewares/context/attachUserToRequestContext';
 import { metricsMiddleware, metricsHandler } from './middlewares/monitoring/metrics';
 
+import { productUploadsStaticMiddleware } from './config/multer';
+import { UPLOADS_PUBLIC_PATH } from './shared/constants/uploads';
+
 const app = express();
 
 //PROMETHEUS metrics
@@ -49,6 +52,8 @@ app.use(helmetConfig);
 // Body parsing middleware - handles JSON and URL-encoded request bodies
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+app.use(`${UPLOADS_PUBLIC_PATH}/products`, productUploadsStaticMiddleware());
 
 // Session management middleware - handles user sessions
 app.use(sessionMiddleware);

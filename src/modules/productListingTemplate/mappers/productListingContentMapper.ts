@@ -12,7 +12,7 @@ type ProductListingContentData = Parameters<typeof buildProductPlaceholderValues
         titleTemplate: string;
         summaryTemplate: string;
         descriptionTemplate: string;
-    };
+    } | null;
 };
 
 export interface ProductListingContent {
@@ -26,6 +26,9 @@ export function mapProductListingContent(
     product: ProductListingContentData,
 ): ProductListingContent {
     try {
+        if (!product.listingTemplate) {
+            throw new ProductListingTemplateRenderError('Nie podano szablonu oferty.');
+        }
         const placeholderValues = buildProductPlaceholderValues(product);
 
         return {

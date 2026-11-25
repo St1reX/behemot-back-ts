@@ -12,10 +12,10 @@ export function mapProductResponse(product: ProductWithListingData): ProductResp
 
     return {
         ...product,
-        listingTemplate: {
+        listingTemplate: product.listingTemplate ? {
             id: product.listingTemplate.id,
             name: product.listingTemplate.name,
-        },
+        } : null,
         title,
         summary,
         description,

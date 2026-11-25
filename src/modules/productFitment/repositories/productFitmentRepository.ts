@@ -1,3 +1,4 @@
+import { AppError, ErrorNames } from '../../../errors/errorHandler';
 import { validateProductFitments } from '../validateProductFitments';
 import { prisma } from '../../../config/database';
 import {
@@ -87,6 +88,7 @@ export class ProductFitmentRepository {
             await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productFitmentData.productId} FOR UPDATE`;
             const [fitment] = await validateProductFitments(tx, [productFitmentData]);
             const { id: _id, ...data } = fitment;
+            await tx.product.updateMany({ where: { id: productFitmentData.productId, deletedAt: null, isLegacy: false }, data: { contentVersion: { increment: 1 } } });
             return tx.productFitment.create({ data: { ...data, productId: productFitmentData.productId }, select: productFitmentSelect });
         });
     }
@@ -96,19 +98,25 @@ export class ProductFitmentRepository {
             await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productFitmentData.productId} FOR UPDATE`;
             const [fitment] = await validateProductFitments(tx, [productFitmentData]);
             const { id: _id, ...data } = fitment;
+            await tx.product.updateMany({ where: { id: productFitmentData.productId, deletedAt: null, isLegacy: false }, data: { contentVersion: { increment: 1 } } });
             return tx.productFitment.update({ where: { id: productFitmentId, deletedAt: null }, data: { ...data, productId: productFitmentData.productId }, select: productFitmentSelect });
         });
     }
 
     static softDelete(productFitmentId: string) {
-        return prisma.productFitment.update({
-            where: {
-                id: productFitmentId,
-                deletedAt: null,
-            },
-            data: {
-                deletedAt: new Date(),
-            },
+        return prisma.$transaction(async (tx) => {
+            const existing = await tx.productFitment.findUniqueOrThrow({ where: { id: productFitmentId, deletedAt: null } });
+            await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${existing.productId} FOR UPDATE`;
+            const fitment = await tx.productFitment.findUniqueOrThrow({ where: { id: productFitmentId, deletedAt: null } });
+            if (fitment.isPrimary) {
+                throw new AppError(ErrorNames.CONFLICT, 409, 'Nie można usunąć głównego dopasowania produktu do pojazdu.');
+            }
+            const linked = await tx.productExternalListingFitment.count({ where: {
+                productFitmentId, deletedAt: null, externalListing: { deletedAt: null },
+            } });
+            if (linked) throw new AppError(ErrorNames.CONFLICT, 409, 'Dopasowanie jest powiązane z ofertą zewnętrzną.');
+            await tx.product.updateMany({ where: { id: fitment.productId, deletedAt: null, isLegacy: false }, data: { contentVersion: { increment: 1 } } });
+            return tx.productFitment.update({ where: { id: productFitmentId, deletedAt: null }, data: { deletedAt: new Date() } });
         });
     }
 

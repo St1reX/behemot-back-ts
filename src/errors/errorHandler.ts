@@ -1,3 +1,4 @@
+import { MulterError } from 'multer';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
@@ -57,6 +58,16 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
         statusCode: error instanceof AppError ? error.statusCode : undefined,
         cause: error instanceof Error && 'cause' in error ? serializeErrorCause(error.cause) : undefined,
     });
+
+    if (error instanceof MulterError) {
+        res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 422).json({ error: {
+            name: ErrorNames.VALIDATION_ERROR,
+            message: error.code === 'LIMIT_FILE_SIZE'
+                ? 'Zdjęcie przekracza dopuszczalny rozmiar.'
+                : 'Nieprawidłowe pola lub przekroczone limity przesyłanych plików.',
+        } });
+        return;
+    }
 
     if (error instanceof ZodError) {
         const issues = error.issues.map((issue) => ({

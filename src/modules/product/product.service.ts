@@ -1,9 +1,10 @@
+import { deleteUploadedFiles } from '../../config/multer';
+import { errorWinston } from '../../config/logger/errorWinston';
 import { OperationStatus } from '@prisma/client';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog, createAuditLogs } from '../../infrastructure/audit/auditLogger';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
-import { enqueueProductListingSync } from './jobs/listingSync/productListingSync.queue';
 import { mapProductResponse } from './mappers/productMapper';
 import { ProductRepository } from './repositories/productRepository';
 import { CreateProductDTO, UpdateProductDTO } from './schemas/product.schema';
@@ -66,8 +67,6 @@ export class ProductService {
             dataAfter: updatedProductResponse,
         });
 
-        await enqueueProductListingSync(productId);
-
         return updatedProductResponse;
     }
 
@@ -105,6 +104,23 @@ export class ProductService {
         return {
             message: 'Product has been deleted successfully',
         };
+    }
+
+    static async cleanupFailedImageUpload(files: { path: string; url: string }[]): Promise<void> {
+        if (!files.length) return;
+        try {
+            // A connection/response failure does not prove the transaction was rolled back.
+            // Never remove a file that is already referenced by a persisted product.
+            const products = await ProductRepository.findReferencingImages(files.map((file) => file.url));
+            const referencedUrls = new Set(products.flatMap((product) => [
+                ...product.imagesUrls,
+                ...product.descriptionImagesUrls,
+            ]));
+            await deleteUploadedFiles(files.filter((file) => !referencedUrls.has(file.url)));
+        } catch (error) {
+            // If the database cannot confirm ownership, retain files for manual reconciliation.
+            errorWinston.error('Nie udało się bezpiecznie usunąć plików po błędzie zapisu produktu.', error);
+        }
     }
 
     private static async ensureProductRelationsExist(

@@ -19,7 +19,6 @@ const body = object({
   imagesUrls: { type: 'array', items: { ...text, format: 'uri' } },
   descriptionImagesUrls: { type: 'array', items: { ...text, format: 'uri' } },
   price: decimal,
-  quantity: { type: 'integer', minimum: 0 },
   customName: { ...text, minLength: 1, maxLength: 255, nullable: true },
   customSummary: { ...text, nullable: true },
   customDescription: { ...text, nullable: true },
@@ -38,22 +37,44 @@ for (const field of ['warehouseId', 'listingTemplateId', 'departmentId', 'produc
   delete fields[field];
 }
 
-module.exports = createCrudDocs({
+const docs = createCrudDocs({
   path: '/product', name: 'Product', tag: 'Products', entity: 'PRODUCT', body,
   properties: {
     ...fields,
-    price: decimalResponse, weight: decimalResponse, length: decimalResponse,
-    width: decimalResponse, height: { ...decimalResponse, nullable: true },
+    isLegacy: { type: 'boolean', readOnly: true },
+    contentVersion: { type: 'integer', minimum: 0, readOnly: true },
+    quantity: { type: 'integer', minimum: 0, nullable: true, readOnly: true },
+    side: { ...fields.side, nullable: true },
+    warehouseLocation: { ...text, nullable: true },
+    price: { ...decimalResponse, nullable: true }, weight: { ...decimalResponse, nullable: true }, length: { ...decimalResponse, nullable: true },
+    width: { ...decimalResponse, nullable: true }, height: { ...decimalResponse, nullable: true },
     title: { ...text, nullable: true }, summary: { ...text, nullable: true },
     description: { ...text, nullable: true }, listingContentError: { ...text, nullable: true },
-    warehouse: namedRelation, listingTemplate: namedRelation, department: departmentRelation, producer: namedRelation,
+    warehouse: { ...namedRelation, nullable: true }, listingTemplate: { ...namedRelation, nullable: true },
+    department: { ...departmentRelation, nullable: true }, producer: { ...namedRelation, nullable: true },
     primaryFitment: { ...fitment, nullable: true }, productFitments: { type: 'array', items: fitment },
     externalListings: { type: 'array', items: object({
-      id: uuid, channel: { ...text, enum: ['ALLEGRO', 'BASELINKER', 'PRESTASHOP'] },
+      id: uuid, integrationId: uuid, integration: namedRelation,
+      lastSyncedContentVersion: { type: 'integer', minimum: 1, nullable: true }, channel: { ...text, enum: ['ALLEGRO', 'BASELINKER', 'PRESTASHOP'] },
       externalId: { ...text, nullable: true }, syncStatus: { ...text, enum: ['PENDING', 'SYNCED', 'FAILED'] },
       lastSyncedAt: { ...text, format: 'date-time', nullable: true }, lastError: { ...text, nullable: true },
     }) },
   },
-  description: 'The listing template must belong to the selected department. Active products have unique SKU; EAN may repeat. Fitments may specify only a brand, a model or a generation; parent IDs are normalized and validated. Removing a fitment linked to an active external listing is forbidden. Listing content is rendered from the template, with optional custom summary and description; rendering failures are returned in listingContentError. Updating a product queues listing synchronization.',
+  description: 'The listing template must belong to the selected department. Active products have unique SKU; EAN may repeat. Fitments may specify only a brand, a model or a generation; parent IDs are normalized and validated. Removing a fitment linked to an active external listing is forbidden. Listing content is rendered from the template, with optional custom summary and description; rendering failures are returned in listingContentError. Import allows incomplete products. A full panel save takes over a legacy product and atomically increments contentVersion. Quantity is read-only. Only one active listing per product/channel is allowed; listing identities are scoped to an integration account. Synchronization is disabled until real updates are implemented.',
   deleteDescription: 'Soft deletes the product together with its non-deleted fitments and cross-references.',
 });
+
+const multipart = {
+  schema: {
+    type: 'object',
+    required: ['data'],
+    properties: {
+      data: { type: 'string', description: 'JSON-encoded ProductInput. Existing image URLs are retained; uploaded files are appended.' },
+      productPhotoes: { type: 'array', maxItems: 20, items: { type: 'string', format: 'binary' } },
+      descProductPhotoes: { type: 'array', maxItems: 20, items: { type: 'string', format: 'binary' } },
+    },
+  },
+};
+docs.paths['/product'].post.requestBody.content['multipart/form-data'] = multipart;
+docs.paths['/product/{id}'].put.requestBody.content['multipart/form-data'] = multipart;
+module.exports = docs;

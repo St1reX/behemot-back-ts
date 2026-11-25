@@ -13,7 +13,6 @@ export const CreateProductSchema = z.object({
     imagesUrls: z.array(imageUrlSchema),
     descriptionImagesUrls: z.array(imageUrlSchema),
     price: decimalSchema,
-    quantity: z.number().int().nonnegative(),
     customName: z.string().min(1).max(255).nullable(),
     customSummary: z.string().nullable().optional(),
     customDescription: z.string().nullable().optional(),
@@ -39,10 +38,34 @@ export const CreateProductSchema = z.object({
         const ids = fitments.flatMap((fitment) => fitment.id ? [fitment.id] : []);
         if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', message: 'Powtórzone identyfikatory dopasowań.' });
     }),
-});
+}).strict();
 
 export type CreateProductDTO = z.infer<typeof CreateProductSchema>;
 
 export const UpdateProductSchema = CreateProductSchema;
 
 export type UpdateProductDTO = z.infer<typeof UpdateProductSchema>;
+
+// Internal import contract; it is deliberately not exposed by product routes.
+export const ImportProductSchema = CreateProductSchema.extend({
+    price: decimalSchema.nullable().default(null),
+    quantity: z.number().int().nonnegative().nullable().default(null),
+    side: z.nativeEnum(PRODUCT_SIDES).nullable().default(null),
+    weight: dimensionSchema.nullable().default(null),
+    length: dimensionSchema.nullable().default(null),
+    width: dimensionSchema.nullable().default(null),
+    height: dimensionSchema.nullable().default(null),
+    warehouseLocation: z.string().min(1).nullable().default(null),
+    warehouseId: UuidSchema.nullable().default(null),
+    listingTemplateId: UuidSchema.nullable().default(null),
+    departmentId: UuidSchema.nullable().default(null),
+    producerId: UuidSchema.nullable().default(null),
+    imagesUrls: z.array(imageUrlSchema).default([]),
+    descriptionImagesUrls: z.array(imageUrlSchema).default([]),
+    oem: z.array(z.string().min(1)).default([]),
+    customName: z.string().min(1).max(255).nullable().default(null),
+    internalNote: z.string().nullable().default(null),
+    ean: z.string().min(1).nullable().default(null),
+});
+
+export type ImportProductDTO = z.infer<typeof ImportProductSchema>;

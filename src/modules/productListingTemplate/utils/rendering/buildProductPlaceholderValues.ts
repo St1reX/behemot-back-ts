@@ -3,24 +3,24 @@ import { formatCarGeneration } from './formatCarGeneration';
 
 interface ProductPlaceholderData {
     customName: string | null;
-    side: ProductSide;
+    side: ProductSide | null;
     sku: string;
     ean: string | null;
     oem: string[];
-    price: { toString(): string };
-    quantity: number;
-    weight: { toString(): string };
-    length: { toString(): string };
-    width: { toString(): string };
+    price: { toString(): string } | null;
+    quantity: number | null;
+    weight: { toString(): string } | null;
+    length: { toString(): string } | null;
+    width: { toString(): string } | null;
     height: { toString(): string } | null;
-    warehouseLocation: string;
+    warehouseLocation: string | null;
     department: {
         name: string;
         shortcut: string;
-    };
+    } | null;
     producer: {
         name: string;
-    };
+    } | null;
     productFitments: ProductFitmentPlaceholderData[];
 }
 
@@ -59,20 +59,20 @@ export function buildProductPlaceholderValues(
         carBrand: primaryFitment?.carBrand?.name ?? primaryCarGeneration?.carModel.carBrand.name ?? null,
         carModel: primaryFitment?.carModel?.name ?? primaryCarGeneration?.carModel.name ?? null,
         productionYears,
-        sideLabel: PRODUCT_SIDE_LABELS[product.side],
-        sideTitleLabel: PRODUCT_SIDE_TITLE_LABELS[product.side],
+        sideLabel: product.side === null ? null : PRODUCT_SIDE_LABELS[product.side],
+        sideTitleLabel: product.side === null ? null : PRODUCT_SIDE_TITLE_LABELS[product.side],
         sku: product.sku,
         ean: product.ean,
         OEM: product.oem.length > 0 ? product.oem.join(', ') : null,
-        price: product.price.toString(),
-        quantity: product.quantity.toString(),
-        weight: product.weight.toString(),
-        length: product.length.toString(),
-        width: product.width.toString(),
+        price: product.price?.toString() ?? null,
+        quantity: product.quantity?.toString() ?? null,
+        weight: product.weight?.toString() ?? null,
+        length: product.length?.toString() ?? null,
+        width: product.width?.toString() ?? null,
         height: product.height?.toString() ?? null,
         warehouseLocation: product.warehouseLocation,
-        department: product.department.name,
-        departmentShortcut: product.department.shortcut,
-        producer: product.producer.name,
+        department: product.department?.name ?? null,
+        departmentShortcut: product.department?.shortcut ?? null,
+        producer: product.producer?.name ?? null,
     };
 }

@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
+    UPLOADS_ROOT_PATH: z.string().min(1).default('uploads'),
+    PUBLIC_UPLOADS_URL: z.string().url().optional(),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
