@@ -27,7 +27,12 @@ export function mapProductListingContent(
 ): ProductListingContent {
     try {
         if (!product.listingTemplate) {
-            throw new ProductListingTemplateRenderError('Nie podano szablonu oferty.');
+            return {
+                title: product.customName,
+                summary: product.customSummary == null ? null : prepareListingHtml(product.customSummary),
+                description: product.customDescription == null ? null : prepareListingHtml(product.customDescription),
+                listingContentError: null,
+            };
         }
         const placeholderValues = buildProductPlaceholderValues(product);
 

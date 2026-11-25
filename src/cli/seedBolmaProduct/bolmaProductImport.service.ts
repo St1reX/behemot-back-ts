@@ -4,8 +4,14 @@ import { parseBolmaProductRow } from './bolmaProductImport.parser';
 import { BOLMA_IMPORT_STATUSES } from './bolmaProductImport.constants';
 import { BolmaProductImportReport, BolmaImportResult } from './bolmaProductImport.report';
 
+export interface BolmaProductPreview {
+    productId?: string;
+    customName: string | null;
+}
+
 export class BolmaProductImportService {
     static async run(apply: boolean, report: BolmaProductImportReport, isInterrupted: () => boolean) {
+        const previewProducts = new Map<string, BolmaProductPreview>();
         const rows = await BolmaProductImportRepository.readSourceRows();
         const dictionaries = await BolmaProductImportRepository.readDictionaries();
         const latestRecordIndexBySku = new Map<string, number>();
@@ -16,7 +22,7 @@ export class BolmaProductImportService {
         }
 
         for (const [index, raw] of rows.entries()) {
-            if (isInterrupted()) return false;
+            if (isInterrupted()) return { completed: false, previewProducts };
             const sku = typeof raw.nr_kat === 'string' ? raw.nr_kat.trim() || null : null;
             let result: BolmaImportResult;
             try {
@@ -39,7 +45,14 @@ export class BolmaProductImportService {
             }
             // Report failure must stop the run, not be mistaken for a rolled-back record.
             await report.record(index + 1, raw.id == null ? null : String(raw.id), sku, result);
+            if (!apply && sku) {
+                if (result.status === BOLMA_IMPORT_STATUSES.PLANNED && result.mappedProduct) {
+                    previewProducts.set(sku, { customName: result.mappedProduct.customName });
+                } else if (result.status === BOLMA_IMPORT_STATUSES.UPDATE_PLANNED && result.nameChange) {
+                    previewProducts.set(sku, { productId: result.productId, customName: result.nameChange.after });
+                }
+            }
         }
-        return !isInterrupted();
+        return { completed: !isInterrupted(), previewProducts };
     }
 }

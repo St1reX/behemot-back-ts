@@ -50,6 +50,7 @@ export function mapBolmaProduct(row: BolmaProductRow, dictionaries: BolmaImportD
     return {
         data: ImportProductSchema.parse({
             sku: row.nr_kat,
+            customName: row.tytul,
             warehouseLocation: row.pozycja_magazynowa,
             departmentId,
             productFitments,

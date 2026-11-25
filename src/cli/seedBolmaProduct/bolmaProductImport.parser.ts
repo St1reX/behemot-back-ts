@@ -9,6 +9,7 @@ export const BolmaProductRowSchema = z.object({
         z.string().regex(/^[1-9]\d*$/u),
     ]),
     nr_kat: nullableText,
+    tytul: nullableText,
     id_kat: nullableText,
     pozycja_magazynowa: nullableText,
     department_sign: nullableText.transform((value) => value?.toUpperCase() ?? null),

@@ -5,6 +5,7 @@ import { env } from '../../config/env';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
 import { PRODUCT_CONTENT_VERSIONS } from '../../modules/product/constants/productVersions';
+import { ImportProductSchema } from '../../modules/product/schemas/product.schema';
 import { validateProductFitments } from '../../modules/productFitment/validateProductFitments';
 import { bolmaDatabasePool } from '../../modules/integrations/bolma/config/database';
 import { BOLMA_PRODUCT_IMPORT, BOLMA_IMPORT_STATUSES } from './bolmaProductImport.constants';
@@ -16,7 +17,7 @@ import { readCatalog } from '../../shared/utils/vehicleCatalog';
 export class BolmaProductImportRepository {
     static async readSourceRows(): Promise<RowDataPacket[]> {
         const [rows] = await bolmaDatabasePool.query<RowDataPacket[]>({
-            sql: `SELECT CAST(p.id AS CHAR) AS id, p.nr_kat, p.id_kat, p.pozycja_magazynowa, p.department_sign
+            sql: `SELECT CAST(p.id AS CHAR) AS id, p.nr_kat, p.tytul, p.id_kat, p.pozycja_magazynowa, p.department_sign
                 FROM products p WHERE p.status = ? ORDER BY p.id ASC`,
             values: [BOLMA_PRODUCT_IMPORT.ACTIVE_STATUS],
             timeout: env.BOLMA_PRODUCTS_CATALOG_MYSQL_CONNECT_TIMEOUT_MS,
@@ -41,16 +42,34 @@ export class BolmaProductImportRepository {
                 status: BOLMA_IMPORT_STATUSES.CONFLICT, message, ...(productId ? { productId } : {}),
             });
             if (!row.nr_kat) return { status: BOLMA_IMPORT_STATUSES.SKIPPED, message: 'Brak SKU.' };
+            if (apply) await tx.$queryRaw`SELECT id FROM "Product" WHERE sku = ${row.nr_kat} FOR UPDATE`;
 
             // Include soft-deleted products: their SKU must not be silently reassigned.
             const existing = await tx.product.findMany({
-                where: { sku: row.nr_kat }, select: { id: true, isLegacy: true, deletedAt: true },
+                where: { sku: row.nr_kat }, select: { id: true, isLegacy: true, contentVersion: true, deletedAt: true, customName: true },
             });
             if (existing.length > 1) return conflict('SKU wskazuje wiele produktów. Bez zmian.');
             if (existing.length === 1) {
                 const product = existing[0];
-                if (!product.isLegacy || product.deletedAt) {
+                if (!product.isLegacy || product.contentVersion !== PRODUCT_CONTENT_VERSIONS.IMPORTED || product.deletedAt) {
                     return conflict('SKU zajęte przez produkt zarządzany przez Behemotha lub usunięty. Bez zmian.', product.id);
+                }
+                if (!product.customName?.trim() && row.tytul) {
+                    const customName = ImportProductSchema.shape.customName.parse(row.tytul);
+                    if (!customName) throw new Error('Niepoprawna nazwa produktu Bolmy.');
+                    const nameChange = { before: product.customName, after: customName };
+                    if (!apply) return { status: BOLMA_IMPORT_STATUSES.UPDATE_PLANNED, productId: product.id,
+                        message: 'Uzupełnienie pustej nazwy produktu legacy z tytul Bolmy (dry run).', nameChange };
+                    await tx.product.update({ where: { id: product.id, isLegacy: true, deletedAt: null,
+                        contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED }, data: { customName } });
+                    await tx.log.create({ data: {
+                        userId: BOLMA_PRODUCT_IMPORT.AUDIT_USER_ID, entityName: ENTITIES.PRODUCT, entityId: product.id,
+                        action: ACTIONS.UPDATE, operationStatus: OperationStatus.SUCCESS,
+                        comment: `Uzupełnienie nazwy z Bolmy: products / ${row.id}.`,
+                        dataBefore: { customName: product.customName }, dataAfter: { customName },
+                    } });
+                    return { status: BOLMA_IMPORT_STATUSES.UPDATED, productId: product.id,
+                        message: 'Uzupełniono pustą nazwę produktu legacy z tytul Bolmy.', nameChange };
                 }
                 return { status: BOLMA_IMPORT_STATUSES.EXISTING, productId: product.id,
                     message: 'Istnieje produkt legacy z tym SKU. Pozostawiono bez zmian.' };

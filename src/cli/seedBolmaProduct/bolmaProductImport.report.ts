@@ -11,12 +11,13 @@ export interface BolmaImportResult {
     productId?: string;
     warnings?: string[];
     mappedProduct?: ImportProductDTO;
+    nameChange?: { before: string | null; after: string };
 }
 
 // JSONL remains readable after interruption; every finished record is flushed.
 export class BolmaProductImportReport {
     private readonly counts: Record<BolmaImportStatus, number> = {
-        created: 0, would_create: 0, existing: 0, skipped: 0, conflict: 0, error: 0,
+        created: 0, would_create: 0, updated: 0, would_update: 0, existing: 0, skipped: 0, conflict: 0, error: 0,
     };
 
     private constructor(private readonly file: FileHandle) {}

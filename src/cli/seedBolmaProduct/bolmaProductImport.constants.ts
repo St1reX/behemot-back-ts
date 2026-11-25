@@ -7,6 +7,8 @@ export const BOLMA_PRODUCT_IMPORT = {
 export const BOLMA_IMPORT_STATUSES = {
     CREATED: 'created',
     PLANNED: 'would_create',
+    UPDATED: 'updated',
+    UPDATE_PLANNED: 'would_update',
     EXISTING: 'existing',
     SKIPPED: 'skipped',
     CONFLICT: 'conflict',
