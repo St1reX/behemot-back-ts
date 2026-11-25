@@ -16,8 +16,7 @@ import swaggerFile from './swagger/swagger_output.json';
 import { attachUserToRequestContext } from './middlewares/context/attachUserToRequestContext';
 import { metricsMiddleware, metricsHandler } from './middlewares/monitoring/metrics';
 
-import { productUploadsStaticMiddleware } from './config/multer';
-import { UPLOADS_PUBLIC_PATH } from './shared/constants/uploads';
+import { uploadsPublicPath, uploadsStaticMiddleware } from './config/multer';
 
 const app = express();
 
@@ -53,7 +52,7 @@ app.use(helmetConfig);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(`${UPLOADS_PUBLIC_PATH}/products`, productUploadsStaticMiddleware());
+app.use(`${uploadsPublicPath}/products`, uploadsStaticMiddleware('products'));
 
 // Session management middleware - handles user sessions
 app.use(sessionMiddleware);

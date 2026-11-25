@@ -46,6 +46,26 @@ export const UpdateProductSchema = CreateProductSchema;
 
 export type UpdateProductDTO = z.infer<typeof UpdateProductSchema>;
 
+// JSON requests already contain the product; multipart carries it in the data field.
+export const CreateProductRequestSchema = z.preprocess((body, context) => {
+    if (!body || typeof body !== 'object' || !('data' in body)) return body;
+
+    const multipartBody = z.object({ data: z.string() }).strict().safeParse(body);
+    if (!multipartBody.success) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: 'Prześlij dane produktu w polu data.' });
+        return z.NEVER;
+    }
+
+    try {
+        return JSON.parse(multipartBody.data.data);
+    } catch {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: 'Pole data musi zawierać poprawny JSON produktu.' });
+        return z.NEVER;
+    }
+}, CreateProductSchema);
+
+export const UpdateProductRequestSchema = CreateProductRequestSchema;
+
 // Internal import contract; it is deliberately not exposed by product routes.
 export const ImportProductSchema = CreateProductSchema.extend({
     price: decimalSchema.nullable().default(null),

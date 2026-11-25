@@ -6,18 +6,18 @@ import express from 'express';
 import multer from 'multer';
 import { AppError, ErrorNames } from '../errors/errorHandler';
 import { env, apiUrl, apiPort } from './env';
-import { BYTES_PER_MB, DEFAULT_UPLOAD_FILE_SIZE_MB, UPLOADS_PUBLIC_PATH } from '../shared/constants/uploads';
+import type { UploadedFile } from '../types/upload.types';
 
+export const uploadsPublicPath = '/uploads';
 export const uploadsRootPath = path.resolve(process.cwd(), env.UPLOADS_ROOT_PATH);
 const configuredApiUrl = new URL(apiUrl);
 if (!configuredApiUrl.port && !['80', '443'].includes(String(apiPort))) configuredApiUrl.port = String(apiPort);
-const publicUploadsUrl = env.PUBLIC_UPLOADS_URL?.replace(/\/$/, '') ?? `${configuredApiUrl.origin}${UPLOADS_PUBLIC_PATH}`;
+const publicUploadsUrl = env.PUBLIC_UPLOADS_URL?.replace(/\/$/, '') ?? `${configuredApiUrl.origin}${uploadsPublicPath}`;
 
 interface CreateMulterUploadOptions {
     directory: string;
     allowedTypes: Readonly<Record<string, string>>;
-    maxFileSizeMb?: number;
-    maxFiles: number;
+    limits: NonNullable<multer.Options['limits']>;
 }
 
 export function createMulterUpload(options: CreateMulterUploadOptions) {
@@ -30,16 +30,11 @@ export function createMulterUpload(options: CreateMulterUploadOptions) {
                 callback(null, `${randomUUID()}${path.extname(file.originalname).toLowerCase()}`);
             },
         }),
-        limits: {
-            fileSize: (options.maxFileSizeMb ?? DEFAULT_UPLOAD_FILE_SIZE_MB) * BYTES_PER_MB,
-            files: options.maxFiles,
-            fields: 1,
-            fieldSize: BYTES_PER_MB,
-        },
+        limits: options.limits,
         fileFilter: (_req, file, callback) => {
             const expectedMime = options.allowedTypes[path.extname(file.originalname).toLowerCase()];
             if (expectedMime && file.mimetype === expectedMime) return callback(null, true);
-            callback(new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Nieprawidłowy typ zdjęcia. Użyj JPEG, PNG lub WebP.'));
+            callback(new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Nieprawidłowy typ pliku.'));
         },
     });
 }
@@ -54,18 +49,22 @@ export function toUploadPublicUrl(filePath: string) {
     return `${publicUploadsUrl}/${relativePath.split(path.sep).map(encodeURIComponent).join('/')}`;
 }
 
-export async function deleteUploadedFiles(files: { path: string }[]) {
+export function toUploadedFile(file: Express.Multer.File): UploadedFile {
+    return { filePath: file.path, fieldName: file.fieldname, mimeType: file.mimetype };
+}
+
+export async function deleteUploadedFiles(files: UploadedFile[]) {
     await Promise.all(files.map(async (file) => {
         try {
-            await fsPromises.unlink(file.path);
+            await fsPromises.unlink(file.filePath);
         } catch (error) {
             if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
         }
     }));
 }
 
-export function productUploadsStaticMiddleware() {
-    return express.static(getUploadDirectory('products'), {
+export function uploadsStaticMiddleware(directory: string) {
+    return express.static(getUploadDirectory(directory), {
         dotfiles: 'deny',
         index: false,
         setHeaders: (res) => { res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); },

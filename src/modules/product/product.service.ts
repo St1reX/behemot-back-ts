@@ -1,5 +1,4 @@
-import { deleteUploadedFiles } from '../../config/multer';
-import { errorWinston } from '../../config/logger/errorWinston';
+import type { UploadedFile } from '../../types/upload.types';
 import { OperationStatus } from '@prisma/client';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { createAuditLog, createAuditLogs } from '../../infrastructure/audit/auditLogger';
@@ -9,6 +8,7 @@ import { mapProductResponse } from './mappers/productMapper';
 import { ProductRepository } from './repositories/productRepository';
 import { CreateProductDTO, UpdateProductDTO } from './schemas/product.schema';
 import { DeleteProductResponse, ProductResponse } from './types/product.types';
+import { storeProductImages } from './uploads/product.upload';
 
 export class ProductService {
     static async getProducts(): Promise<ProductResponse[]> {
@@ -27,11 +27,16 @@ export class ProductService {
         return mapProductResponse(product);
     }
 
-    static async createProduct(productData: CreateProductDTO): Promise<ProductResponse> {
+    static async createProduct(productData: CreateProductDTO, files: UploadedFile[] = []): Promise<ProductResponse> {
         await this.ensureProductRelationsExist(productData);
         await this.ensureProductDataIsAvailable(productData);
 
-        const createdProduct = await ProductRepository.create(productData);
+        const uploaded = await storeProductImages(files, productData.sku);
+        const createdProduct = await ProductRepository.create({
+            ...productData,
+            imagesUrls: [...productData.imagesUrls, ...uploaded.imagesUrls],
+            descriptionImagesUrls: [...productData.descriptionImagesUrls, ...uploaded.descriptionImagesUrls],
+        });
         const createdProductResponse = mapProductResponse(createdProduct);
 
         await createAuditLog({
@@ -49,13 +54,19 @@ export class ProductService {
     static async updateProduct(
         productId: string,
         productData: UpdateProductDTO,
+        files: UploadedFile[] = [],
     ): Promise<ProductResponse> {
         const existingProduct = await this.getProduct(productId);
 
         await this.ensureProductRelationsExist(productData);
         await this.ensureProductDataIsAvailable(productData, productId);
 
-        const updatedProduct = await ProductRepository.update(productId, productData);
+        const uploaded = await storeProductImages(files, productData.sku);
+        const updatedProduct = await ProductRepository.update(productId, {
+            ...productData,
+            imagesUrls: [...productData.imagesUrls, ...uploaded.imagesUrls],
+            descriptionImagesUrls: [...productData.descriptionImagesUrls, ...uploaded.descriptionImagesUrls],
+        });
         const updatedProductResponse = mapProductResponse(updatedProduct);
 
         await createAuditLog({
@@ -104,23 +115,6 @@ export class ProductService {
         return {
             message: 'Product has been deleted successfully',
         };
-    }
-
-    static async cleanupFailedImageUpload(files: { path: string; url: string }[]): Promise<void> {
-        if (!files.length) return;
-        try {
-            // A connection/response failure does not prove the transaction was rolled back.
-            // Never remove a file that is already referenced by a persisted product.
-            const products = await ProductRepository.findReferencingImages(files.map((file) => file.url));
-            const referencedUrls = new Set(products.flatMap((product) => [
-                ...product.imagesUrls,
-                ...product.descriptionImagesUrls,
-            ]));
-            await deleteUploadedFiles(files.filter((file) => !referencedUrls.has(file.url)));
-        } catch (error) {
-            // If the database cannot confirm ownership, retain files for manual reconciliation.
-            errorWinston.error('Nie udało się bezpiecznie usunąć plików po błędzie zapisu produktu.', error);
-        }
     }
 
     private static async ensureProductRelationsExist(
