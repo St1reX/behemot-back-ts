@@ -28,6 +28,7 @@ export class MarketplaceIntegrationRepository {
             where: {
                 channel: configuration.channel,
                 environment: IntegrationEnvironment.PRODUCTION,
+                market: configuration.market ?? null,
                 deletedAt: null,
                 ...(configuration.externalAccountId !== null ? {
                     externalAccountId: configuration.externalAccountId,

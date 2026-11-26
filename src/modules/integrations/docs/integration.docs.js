@@ -45,6 +45,13 @@ module.exports = {
             },
         },
         MarketplaceIntegration: marketplaceIntegration,
+        MarketplaceCreationResponse: object({
+            results: { type: 'array', items: object({
+                market: text,
+                status: { type: 'string', enum: ['CONNECTED', 'EXISTING', 'ERROR'] },
+                error: nullableText,
+            }) },
+        }),
         ConnectionCheckResponse: object({
             integration: { $ref: '#/components/schemas/MarketplaceIntegration' },
             error: { type: 'string', nullable: true, description: 'Safe connection failure description, or null on success.' },
@@ -68,7 +75,7 @@ module.exports = {
             post: {
                 tags: ['Integrations'],
                 summary: 'Check connection and refresh account data',
-                description: 'Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG checks API access through product_offer/count on the RO endpoint; its public API has no seller-profile endpoint.',
+                description: 'Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG checks API access through product_offer/count on the stored market endpoint (RO for legacy records without a market); its public API has no seller-profile endpoint.',
                 security: [{ cookieAuth: [] }],
                 parameters: [{ name: 'id', in: 'path', required: true, schema: uuid }],
                 responses: {
@@ -85,7 +92,7 @@ module.exports = {
             post: {
                 tags: ['Integrations'],
                 summary: 'Save a marketplace account configuration',
-                description: 'Requires INTEGRATION:CREATE. ERLI accepts {token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {username, password}, with an email username. All channels use the same creation service and return one integration with HTTP 201. Duplicate active account configurations are rejected with HTTP 409. eMAG uses only the RO API for now, without separate market configurations.',
+                description: 'Requires INTEGRATION:CREATE. ERLI accepts {token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {username, password}, with an email username. All channels use the same creation service. ERLI and PRESTASHOP return one integration with HTTP 201 and reject duplicate configurations with HTTP 409. EMAG checks RO, BG and HU using the same credentials and creates a separate integration for each accessible market. HTTP 200 returns per-market CONNECTED, EXISTING or ERROR results; a failed market does not block the others.',
                 security: [{ cookieAuth: [] }],
                 parameters: [{ name: 'channel', in: 'path', required: true, schema: { type: 'string', enum: ['ALLEGRO', 'EMAG', 'ERLI', 'PRESTASHOP'] } }],
                 requestBody: {
@@ -97,6 +104,7 @@ module.exports = {
                     ] } } },
                 },
                 responses: {
+                    200: { description: 'Market configuration attempts completed; inspect each result.', content: { 'application/json': { schema: { $ref: '#/components/schemas/MarketplaceCreationResponse' } } } },
                     409: { description: 'This account configuration already exists.' },
                     201: { description: 'Configuration and verified shop identity saved.', content: { 'application/json': { schema: { $ref: '#/components/schemas/MarketplaceIntegration' } } } },
                     400: { description: 'Configuration for this channel is not implemented.' },

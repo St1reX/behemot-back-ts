@@ -1,5 +1,6 @@
 import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
 import { ErliShopSchema } from './erli.schema';
+import { env } from '../../../../../config/env';
 
 export class ErliApiClient {
     static async getShop(token: string) {
@@ -7,7 +8,7 @@ export class ErliApiClient {
         let body: unknown;
 
         try {
-            response = await fetch('https://erli.pl/svc/shop-api/me', {
+            response = await fetch(new URL('me', env.ERLI_API_BASE_URL), {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
