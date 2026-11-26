@@ -7,8 +7,23 @@ import { AllegroController } from './marketplace/adapters/allegro/allegro.contro
 
 const router = Router();
 
-router.get('/allegro/configuration', requireAuth, requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.CREATE}`), requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`), AllegroController.configuration);
-router.post('/allegro/authorize', requireAuth, requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.CREATE}`), requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`), AllegroController.authorize);
-router.get('/allegro/callback', requireAuth, requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.CREATE}`), requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`), AllegroController.callback);
+router.get(
+    '/allegro/configuration',
+    requireAuth,
+    requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`),
+    AllegroController.configuration,
+);
+router.post(
+    '/allegro/authorize',
+    requireAuth,
+    requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`),
+    AllegroController.authorize,
+);
+router.get(
+    '/allegro/callback',
+    requireAuth,
+    requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.UPDATE}`),
+    AllegroController.callback,
+);
 
 export default router;

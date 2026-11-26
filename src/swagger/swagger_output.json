@@ -5219,7 +5219,7 @@
           "Integrations"
         ],
         "summary": "Check connection and refresh account data",
-        "description": "Requires INTEGRATION:UPDATE. Supports Allegro, ERLI, PrestaShop and eMAG. Uses the stored API URL. Allegro calls GET /me with its stored access token; missing, expired or rejected tokens require OAuth reconnection. Tokens are not refreshed and requests are not retried. A completed check returns HTTP 200 with the updated integration and an optional safe error. Failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG uses product_offer/count.",
+        "description": "Requires INTEGRATION:UPDATE. Supports Allegro, ERLI, PrestaShop and eMAG. Uses the stored API URL. Allegro reads current credentials by integration ID, refreshes missing access tokens or tokens expiring within 60 seconds and persists both rotated tokens with their expiry. A provider 401 triggers token refresh and exactly one retry; a token refreshed concurrently is reused. Refreshes are serialized by a database row lock across API/worker processes, reconnection and deletion. Invalid refresh tokens require OAuth reconnection; network errors do not clear credentials. A completed check returns HTTP 200 with the updated integration and an optional safe error. Failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG uses product_offer/count.",
         "security": [
           {
             "cookieAuth": []

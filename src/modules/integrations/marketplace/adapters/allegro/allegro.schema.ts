@@ -34,6 +34,10 @@ export const AllegroTokenSchema = z.object({
     expires_in: z.number().int().positive().max(86400),
 });
 
+export const AllegroOAuthErrorSchema = z.object({
+    error: z.string(),
+});
+
 export const AllegroUserSchema = z.object({
     id: z.string().min(1).max(255),
     login: z.string().min(1).max(255),

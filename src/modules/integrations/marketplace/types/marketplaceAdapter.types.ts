@@ -8,8 +8,7 @@ export interface MarketplaceAccountData {
 }
 
 export interface MarketplaceConnectionContext {
-    accessToken?: string;
-    accessTokenExpiresAt?: Date | null;
+    integrationId?: string;
     apiKey?: string;
     username?: string | null;
     password?: string;

@@ -16,7 +16,7 @@ export class MarketplaceIntegrationService {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
         }
 
-        const { encryptedApiKey, encryptedPassword, encryptedAccessToken, ...integrationBefore } = storedIntegration;
+        const { encryptedApiKey, encryptedPassword, ...integrationBefore } = storedIntegration;
         const adapter = createMarketplaceAdapter(storedIntegration.channel);
         let account: MarketplaceAccountData | null = null;
         let errorMessage: string | null = null;
@@ -24,10 +24,8 @@ export class MarketplaceIntegrationService {
         try {
             const apiKey = encryptedApiKey ? decryptSecret(encryptedApiKey, `marketplace:${integrationId}:encryptedApiKey`) : undefined;
             const password = encryptedPassword ? decryptSecret(encryptedPassword, `marketplace:${integrationId}:encryptedPassword`) : undefined;
-            const accessToken = encryptedAccessToken ? decryptSecret(encryptedAccessToken, `marketplace:${integrationId}:encryptedAccessToken`) : undefined;
             account = await adapter.checkConnection({
-                accessToken,
-                accessTokenExpiresAt: storedIntegration.accessTokenExpiresAt,
+                integrationId,
                 apiKey,
                 password,
                 username: storedIntegration.externalUsername,
