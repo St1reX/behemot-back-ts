@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { readCatalog, canonicalBrand, normalizeName } from '../../shared/utils/vehicleCatalog';
 import { ImportProductSchema } from '../../modules/product/schemas/product.schema';
 import { BolmaProductRow } from './bolmaProductImport.parser';
+import { mapBolmaMeasurements } from './bolmaProductImport.measurements';
 
 export type BolmaImportBrand = Prisma.CarBrandGetPayload<{ include: {
     models: { include: { carGenerations: true } };
@@ -19,7 +20,8 @@ function uniqueMatch<T>(items: T[], label: string): T {
 }
 
 export function mapBolmaProduct(row: BolmaProductRow, dictionaries: BolmaImportDictionaries) {
-    const warnings: string[] = [];
+    const measurements = mapBolmaMeasurements(row.params);
+    const warnings = [...measurements.warnings];
     let departmentId: string | null = null;
     if (row.department_sign) {
         const departments = dictionaries.departments.filter((item) => item.shortcut.trim().toUpperCase() === row.department_sign);
@@ -51,6 +53,7 @@ export function mapBolmaProduct(row: BolmaProductRow, dictionaries: BolmaImportD
         data: ImportProductSchema.parse({
             sku: row.nr_kat,
             customName: row.tytul,
+            ...measurements.data,
             warehouseLocation: row.pozycja_magazynowa,
             departmentId,
             productFitments,

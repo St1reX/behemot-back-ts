@@ -13,6 +13,7 @@ import { BolmaProductRow } from './bolmaProductImport.parser';
 import { BolmaImportDictionaries, mapBolmaProduct } from './bolmaProductImport.mapper';
 import { BolmaImportResult } from './bolmaProductImport.report';
 import { readCatalog } from '../../shared/utils/vehicleCatalog';
+import { mapBolmaMeasurements } from './bolmaProductImport.measurements';
 
 export class BolmaProductImportRepository {
     static async readSourceRows(): Promise<RowDataPacket[]> {
@@ -22,7 +23,20 @@ export class BolmaProductImportRepository {
             values: [BOLMA_PRODUCT_IMPORT.ACTIVE_STATUS],
             timeout: env.BOLMA_PRODUCTS_CATALOG_MYSQL_CONNECT_TIMEOUT_MS,
         });
-        return rows;
+        const [params] = await bolmaDatabasePool.query<RowDataPacket[]>({
+            sql: `SELECT CAST(pp.product_id AS CHAR) AS product_id, pp.param_id, pp.value
+                FROM products_2_params pp JOIN products p ON p.id = pp.product_id
+                WHERE p.status = ? AND pp.param_id IN (1, 2, 4) ORDER BY pp.id ASC`,
+            values: [BOLMA_PRODUCT_IMPORT.ACTIVE_STATUS],
+            timeout: env.BOLMA_PRODUCTS_CATALOG_MYSQL_CONNECT_TIMEOUT_MS,
+        });
+        const paramsByProduct = new Map<string, BolmaProductRow['params']>();
+        for (const param of params) {
+            const productParams = paramsByProduct.get(param.product_id) ?? [];
+            productParams.push({ param_id: param.param_id, value: param.value });
+            paramsByProduct.set(param.product_id, productParams);
+        }
+        return rows.map((row) => Object.assign(row, { params: paramsByProduct.get(row.id) ?? [] }));
     }
 
     static async readDictionaries(): Promise<BolmaImportDictionaries> {
@@ -46,7 +60,9 @@ export class BolmaProductImportRepository {
 
             // Include soft-deleted products: their SKU must not be silently reassigned.
             const existing = await tx.product.findMany({
-                where: { sku: row.nr_kat }, select: { id: true, isLegacy: true, contentVersion: true, deletedAt: true, customName: true },
+                where: { sku: row.nr_kat }, select: {
+                    id: true, isLegacy: true, contentVersion: true, deletedAt: true, customName: true, length: true, weight: true,
+                },
             });
             if (existing.length > 1) return conflict('SKU wskazuje wiele produktów. Bez zmian.');
             if (existing.length === 1) {
@@ -54,25 +70,46 @@ export class BolmaProductImportRepository {
                 if (!product.isLegacy || product.contentVersion !== PRODUCT_CONTENT_VERSIONS.IMPORTED || product.deletedAt) {
                     return conflict('SKU zajęte przez produkt zarządzany przez Behemotha lub usunięty. Bez zmian.', product.id);
                 }
+                const measurements = mapBolmaMeasurements(row.params);
+                const data: { customName?: string; length?: number; weight?: number } = {};
+                const dataBefore: { customName?: string | null; length?: number | null; weight?: number | null } = {};
+                let nameChange: BolmaImportResult['nameChange'];
                 if (!product.customName?.trim() && row.tytul) {
                     const customName = ImportProductSchema.shape.customName.parse(row.tytul);
                     if (!customName) throw new Error('Niepoprawna nazwa produktu Bolmy.');
-                    const nameChange = { before: product.customName, after: customName };
+                    nameChange = { before: product.customName, after: customName };
+                    data.customName = customName;
+                    dataBefore.customName = product.customName;
+                }
+                for (const field of ['length', 'weight'] as const) {
+                    const value = measurements.data[field];
+                    if ((product[field] === null || product[field].lte(0)) && value !== null) {
+                        data[field] = value;
+                        dataBefore[field] = product[field]?.toNumber() ?? null;
+                    }
+                }
+                if (Object.keys(data).length) {
+                    const previewProduct = {
+                        customName: data.customName ?? product.customName,
+                        length: data.length ?? product.length?.toNumber() ?? null,
+                        weight: data.weight ?? product.weight?.toNumber() ?? null,
+                    };
+                    const details = { nameChange, dataBefore, dataAfter: data, warnings: measurements.warnings, previewProduct };
                     if (!apply) return { status: BOLMA_IMPORT_STATUSES.UPDATE_PLANNED, productId: product.id,
-                        message: 'Uzupełnienie pustej nazwy produktu legacy z tytul Bolmy (dry run).', nameChange };
+                        message: 'Uzupełnienie pustej nazwy, długości lub wagi produktu legacy z Bolmy (dry run).', ...details };
                     await tx.product.update({ where: { id: product.id, isLegacy: true, deletedAt: null,
-                        contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED }, data: { customName } });
+                        contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED }, data });
                     await tx.log.create({ data: {
                         userId: BOLMA_PRODUCT_IMPORT.AUDIT_USER_ID, entityName: ENTITIES.PRODUCT, entityId: product.id,
                         action: ACTIONS.UPDATE, operationStatus: OperationStatus.SUCCESS,
-                        comment: `Uzupełnienie nazwy z Bolmy: products / ${row.id}.`,
-                        dataBefore: { customName: product.customName }, dataAfter: { customName },
+                        comment: `Uzupełnienie danych z Bolmy: products / ${row.id}.`,
+                        dataBefore, dataAfter: data,
                     } });
                     return { status: BOLMA_IMPORT_STATUSES.UPDATED, productId: product.id,
-                        message: 'Uzupełniono pustą nazwę produktu legacy z tytul Bolmy.', nameChange };
+                        message: 'Uzupełniono puste dane produktu legacy z Bolmy.', ...details };
                 }
                 return { status: BOLMA_IMPORT_STATUSES.EXISTING, productId: product.id,
-                    message: 'Istnieje produkt legacy z tym SKU. Pozostawiono bez zmian.' };
+                    message: 'Istnieje produkt legacy z tym SKU. Pozostawiono bez zmian.', warnings: measurements.warnings };
             }
 
             const mapped = mapBolmaProduct(row, dictionaries);

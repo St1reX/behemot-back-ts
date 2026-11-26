@@ -7,6 +7,8 @@ import { BolmaProductImportReport, BolmaImportResult } from './bolmaProductImpor
 export interface BolmaProductPreview {
     productId?: string;
     customName: string | null;
+    length: number | null;
+    weight: number | null;
 }
 
 export class BolmaProductImportService {
@@ -47,9 +49,10 @@ export class BolmaProductImportService {
             await report.record(index + 1, raw.id == null ? null : String(raw.id), sku, result);
             if (!apply && sku) {
                 if (result.status === BOLMA_IMPORT_STATUSES.PLANNED && result.mappedProduct) {
-                    previewProducts.set(sku, { customName: result.mappedProduct.customName });
-                } else if (result.status === BOLMA_IMPORT_STATUSES.UPDATE_PLANNED && result.nameChange) {
-                    previewProducts.set(sku, { productId: result.productId, customName: result.nameChange.after });
+                    const { customName, length, weight } = result.mappedProduct;
+                    previewProducts.set(sku, { customName, length, weight });
+                } else if (result.status === BOLMA_IMPORT_STATUSES.UPDATE_PLANNED && result.previewProduct) {
+                    previewProducts.set(sku, { productId: result.productId, ...result.previewProduct });
                 }
             }
         }

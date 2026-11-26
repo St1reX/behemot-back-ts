@@ -37,10 +37,17 @@ export class BaselinkerProductImportRepository {
                 return { status: BASELINKER_IMPORT_STATUSES.CONFLICT, message: 'Produkt zmienił się od podglądu etapu Bolmy. Ponów podgląd.' };
             }
             const storedProduct = products[0];
-            const product = storedProduct ? { ...storedProduct, customName: preview ? preview.customName : storedProduct.customName } : {
+            const product = storedProduct ? {
+                ...storedProduct,
+                ...(preview ? {
+                    customName: preview.customName,
+                    length: preview.length === null ? null : new Prisma.Decimal(preview.length),
+                    weight: preview.weight === null ? null : new Prisma.Decimal(preview.weight),
+                } : {}),
+            } : {
                 id: undefined, isLegacy: true, contentVersion: PRODUCT_CONTENT_VERSIONS.IMPORTED, deletedAt: null,
                 customName: preview!.customName, customDescription: null, ean: null,
-                price: null, weight: null, height: null, length: null, width: null,
+                price: null, weight: preview!.weight, height: null, length: preview!.length, width: null,
             };
             if (product.deletedAt) return { status: BASELINKER_IMPORT_STATUSES.SKIPPED, productId: product.id, message: 'Produkt usunięty. Bez zmian.' };
             if (!product.isLegacy || product.contentVersion !== PRODUCT_CONTENT_VERSIONS.IMPORTED) {

@@ -12,6 +12,9 @@ export interface BolmaImportResult {
     warnings?: string[];
     mappedProduct?: ImportProductDTO;
     nameChange?: { before: string | null; after: string };
+    dataBefore?: { customName?: string | null; length?: number | null; weight?: number | null };
+    dataAfter?: { customName?: string; length?: number; weight?: number };
+    previewProduct?: { customName: string | null; length: number | null; weight: number | null };
 }
 
 // JSONL remains readable after interruption; every finished record is flushed.
@@ -27,7 +30,8 @@ export class BolmaProductImportReport {
         const report = new BolmaProductImportReport(await open(path, 'wx'));
         try {
             await report.append({ type: 'header', source: 'Bolma products', mode: apply ? 'apply' : 'dry-run',
-                startedAt: new Date().toISOString(), listings: BOLMA_PRODUCT_IMPORT.LISTINGS_NOTE });
+                startedAt: new Date().toISOString(), listings: BOLMA_PRODUCT_IMPORT.LISTINGS_NOTE,
+                units: { weight: 'kg', dimensions: 'cm' } });
             return report;
         } catch (error) {
             await report.file.close();
