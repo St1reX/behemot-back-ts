@@ -1,4 +1,4 @@
-import { IntegrationChannel, IntegrationSyncStatus, Prisma } from '@prisma/client';
+import { MarketplaceIntegrationChannel, IntegrationSyncStatus, Prisma } from '@prisma/client';
 import { ProductSide } from '../../../shared/constants/productSides';
 
 export interface ProductResponse {
@@ -50,7 +50,7 @@ export interface ProductResponse {
         integrationId: string;
         integration: { id: string; name: string };
         lastSyncedContentVersion: number | null;
-        channel: IntegrationChannel;
+        channel: MarketplaceIntegrationChannel;
         externalId: string | null;
         syncStatus: IntegrationSyncStatus;
         lastSyncedAt: Date | null;

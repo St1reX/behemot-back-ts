@@ -52,6 +52,10 @@
       "description": "Internal product catalog integration."
     },
     {
+      "name": "Integrations",
+      "description": "Read-only integration overview. Credentials and settings are never returned."
+    },
+    {
       "name": "Producers",
       "description": "PRODUCER management."
     },
@@ -4886,6 +4890,92 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BolmaStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "List the Bolma data source and active marketplace integration records",
+        "description": "Requires INTEGRATION:READ. Excludes soft-deleted records. Does not connect to external services.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration overview without credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing INTEGRATION:READ privilege.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -12531,6 +12621,394 @@
           }
         }
       },
+      "IntegrationsResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "bolma": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "example": [
+                              "bolma"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          }
+                        }
+                      },
+                      "engine": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "example": [
+                              "MySQL"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "isConfigured": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "boolean"
+                          },
+                          "description": {
+                            "type": "string",
+                            "example": "Configuration exists; this does not verify connectivity."
+                          }
+                        }
+                      },
+                      "sslEnabled": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "id",
+                      "name",
+                      "engine",
+                      "isConfigured",
+                      "sslEnabled"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "marketplaces": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "example": "object"
+                      },
+                      "properties": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "uuid"
+                              }
+                            }
+                          },
+                          "name": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              }
+                            }
+                          },
+                          "channel": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "enum": {
+                                "type": "array",
+                                "example": [
+                                  "ALLEGRO",
+                                  "EMAG",
+                                  "ERLI",
+                                  "PRESTASHOP"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "externalAccountId": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "externalUsername": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "environment": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "enum": {
+                                "type": "array",
+                                "example": [
+                                  "PRODUCTION",
+                                  "SANDBOX"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "market": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "isEnabled": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "boolean"
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "enum": {
+                                "type": "array",
+                                "example": [
+                                  "PENDING",
+                                  "CONNECTED",
+                                  "ERROR"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "accessTokenExpiresAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "lastConnectionCheckAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "lastSuccessfulSyncAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "lastErrorAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "example": true
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              }
+                            }
+                          },
+                          "updatedAt": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "example": "string"
+                              },
+                              "format": {
+                                "type": "string",
+                                "example": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": {
+                        "type": "array",
+                        "example": [
+                          "id",
+                          "name",
+                          "channel",
+                          "externalAccountId",
+                          "externalUsername",
+                          "environment",
+                          "market",
+                          "isEnabled",
+                          "status",
+                          "accessTokenExpiresAt",
+                          "lastConnectionCheckAt",
+                          "lastSuccessfulSyncAt",
+                          "lastErrorAt",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "bolma",
+              "marketplaces"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "Producer": {
         "type": "object",
         "properties": {
@@ -14118,7 +14596,8 @@
                                 "type": "array",
                                 "example": [
                                   "ALLEGRO",
-                                  "BASELINKER",
+                                  "EMAG",
+                                  "ERLI",
                                   "PRESTASHOP"
                                 ],
                                 "items": {

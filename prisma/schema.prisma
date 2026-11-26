@@ -7,6 +7,7 @@ datasource db {
 }
 
 enum EntityName {
+  INTEGRATION
   USER
   REGISTRATION_TOKEN
   ROLE
@@ -36,10 +37,22 @@ enum ProductSide {
   NONE
 }
 
-enum IntegrationChannel {
+enum MarketplaceIntegrationChannel {
   ALLEGRO
-  BASELINKER
+  EMAG
+  ERLI
   PRESTASHOP
+}
+
+enum IntegrationEnvironment {
+  PRODUCTION
+  SANDBOX
+}
+
+enum MarketplaceIntegrationStatus {
+  PENDING
+  CONNECTED
+  ERROR
 }
 
 enum IntegrationSyncStatus {
@@ -48,16 +61,32 @@ enum IntegrationSyncStatus {
   FAILED
 }
 
-model Integration {
+model MarketplaceIntegration {
   id String @id @default(uuid())
 
   name              String
-  channel           IntegrationChannel
+  channel           MarketplaceIntegrationChannel
   externalAccountId String?
+  externalUsername  String?
+  environment       IntegrationEnvironment @default(PRODUCTION)
 
-  encryptedAccessToken  String
+  encryptedAccessToken  String?
   encryptedRefreshToken String?
-  accessTokenExpiresAt  DateTime
+  encryptedApiKey       String?
+  encryptedPassword     String?
+  accessTokenExpiresAt  DateTime?
+
+  baseUrl  String?
+  market   String?
+  settings Json?
+
+  isEnabled Boolean                      @default(true)
+  status    MarketplaceIntegrationStatus @default(PENDING)
+
+  lastConnectionCheckAt DateTime?
+  lastSuccessfulSyncAt  DateTime?
+  lastErrorAt           DateTime?
+  lastErrorMessage      String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -67,7 +96,8 @@ model Integration {
 
   @@unique([id, channel])
   @@index([channel])
-  @@unique([channel, externalAccountId])
+  @@index([channel, externalAccountId])
+  @@index([isEnabled, status])
 }
 
 model Role {
@@ -325,10 +355,10 @@ model ProductExternalListing {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  channel    IntegrationChannel
+  channel    MarketplaceIntegrationChannel
   externalId String?
   integrationId String
-  integration Integration @relation(fields: [integrationId, channel], references: [id, channel], onDelete: Restrict)
+  integration MarketplaceIntegration @relation(fields: [integrationId, channel], references: [id, channel], onDelete: Restrict)
 
   syncStatus  IntegrationSyncStatus @default(PENDING)
   lastSyncedAt DateTime?

@@ -55,7 +55,7 @@ const docs = createCrudDocs({
     primaryFitment: { ...fitment, nullable: true }, productFitments: { type: 'array', items: fitment },
     externalListings: { type: 'array', items: object({
       id: uuid, integrationId: uuid, integration: namedRelation,
-      lastSyncedContentVersion: { type: 'integer', minimum: 1, nullable: true }, channel: { ...text, enum: ['ALLEGRO', 'BASELINKER', 'PRESTASHOP'] },
+      lastSyncedContentVersion: { type: 'integer', minimum: 1, nullable: true }, channel: { ...text, enum: ['ALLEGRO', 'EMAG', 'ERLI', 'PRESTASHOP'] },
       externalId: { ...text, nullable: true }, syncStatus: { ...text, enum: ['PENDING', 'SYNCED', 'FAILED'] },
       lastSyncedAt: { ...text, format: 'date-time', nullable: true }, lastError: { ...text, nullable: true },
     }) },
