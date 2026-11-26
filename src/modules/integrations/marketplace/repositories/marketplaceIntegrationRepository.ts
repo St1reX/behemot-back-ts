@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../../config/database';
+import { prisma } from '../../../../config/database';
 
 // Explicit projection: credentials and free-form settings must never reach the panel.
 const integrationSelect = {
@@ -20,8 +20,8 @@ const integrationSelect = {
     updatedAt: true,
 } satisfies Prisma.MarketplaceIntegrationSelect;
 
-export class IntegrationRepository {
-    static findMarketplaces() {
+export class MarketplaceIntegrationRepository {
+    static findAll() {
         return prisma.marketplaceIntegration.findMany({
             where: { deletedAt: null },
             select: integrationSelect,

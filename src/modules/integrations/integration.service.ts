@@ -1,9 +1,9 @@
 import { env } from '../../config/env';
-import { IntegrationRepository } from './repositories/integrationRepository';
+import { MarketplaceIntegrationService } from './marketplace/marketplaceIntegration.service';
 
 export class IntegrationService {
     static async getIntegrations() {
-        const marketplaces = await IntegrationRepository.findMarketplaces();
+        const marketplaces = await MarketplaceIntegrationService.getIntegrations();
 
         return {
             bolma: {
