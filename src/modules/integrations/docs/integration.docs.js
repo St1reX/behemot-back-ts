@@ -8,6 +8,7 @@ const marketplaceIntegration = object({
     id: uuid,
     name: text,
     channel: { type: 'string', enum: ['ALLEGRO', 'EMAG', 'ERLI', 'PRESTASHOP'] },
+    baseUrl: nullableText,
     externalAccountId: nullableText,
     externalUsername: nullableText,
     environment: { type: 'string', enum: ['PRODUCTION', 'SANDBOX'] },
@@ -25,6 +26,17 @@ const marketplaceIntegration = object({
 module.exports = {
     tags: [{ name: 'Integrations', description: 'Integration overview and configuration. Credentials and settings are never returned.' }],
     schemas: {
+        ErliConfiguration: {
+            type: 'object', additionalProperties: false, required: ['token'],
+            properties: { token: { type: 'string', minLength: 1, maxLength: 8192, pattern: '^\\S+$', writeOnly: true } },
+        },
+        PrestashopConfiguration: {
+            type: 'object', additionalProperties: false, required: ['baseUrl', 'apiKey'],
+            properties: {
+                baseUrl: { type: 'string', format: 'uri', maxLength: 2048, description: 'HTTPS shop address or API base URL; stored normalized with a trailing /api/ path. No credentials, query or fragment.' },
+                apiKey: { type: 'string', minLength: 1, maxLength: 128, pattern: '^[a-zA-Z0-9]+$', writeOnly: true },
+            },
+        },
         MarketplaceIntegration: marketplaceIntegration,
         ConnectionCheckResponse: object({
             integration: { $ref: '#/components/schemas/MarketplaceIntegration' },
@@ -49,7 +61,7 @@ module.exports = {
             post: {
                 tags: ['Integrations'],
                 summary: 'Check connection and refresh account data',
-                description: 'Requires INTEGRATION:UPDATE. Currently supports ERLI. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled.',
+                description: 'Requires INTEGRATION:UPDATE. Supports ERLI and PrestaShop. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop uses its saved baseUrl and the first returned shop.',
                 security: [{ cookieAuth: [] }],
                 parameters: [{ name: 'id', in: 'path', required: true, schema: uuid }],
                 responses: {
@@ -66,23 +78,23 @@ module.exports = {
             post: {
                 tags: ['Integrations'],
                 summary: 'Save a marketplace account configuration',
-                description: 'Requires INTEGRATION:CREATE. Currently supports ERLI only. Calls ERLI GET /me and saves the encrypted token, shop identity and CONNECTED status only after a successful response.',
+                description: 'Requires INTEGRATION:CREATE. ERLI accepts {token} and calls GET /me. PRESTASHOP accepts {baseUrl, apiKey} and calls GET shops?display=full&output_format=JSON&limit=1 using Basic authentication with an empty password. Saves encrypted credentials, identity and CONNECTED status after successful validation. PrestaShop selects the first returned shop; the API key requires GET access to shops.',
                 security: [{ cookieAuth: [] }],
                 parameters: [{ name: 'channel', in: 'path', required: true, schema: { type: 'string', enum: ['ALLEGRO', 'EMAG', 'ERLI', 'PRESTASHOP'] } }],
                 requestBody: {
                     required: true,
-                    content: { 'application/json': { schema: {
-                        type: 'object', additionalProperties: false, required: ['token'],
-                        properties: { token: { type: 'string', minLength: 1, maxLength: 8192, pattern: '^\\S+$', writeOnly: true, description: 'Raw ERLI API key, without the Bearer prefix.' } },
-                    } } },
+                    content: { 'application/json': { schema: { oneOf: [
+                        { $ref: '#/components/schemas/ErliConfiguration' },
+                        { $ref: '#/components/schemas/PrestashopConfiguration' },
+                    ] } } },
                 },
                 responses: {
                     201: { description: 'Configuration and verified shop identity saved.', content: { 'application/json': { schema: { $ref: '#/components/schemas/MarketplaceIntegration' } } } },
                     400: { description: 'Configuration for this channel is not implemented.' },
                     401: { description: 'User not authenticated.' },
                     403: { description: 'Missing INTEGRATION:CREATE privilege.' },
-                    422: { description: 'Invalid channel, configuration or token rejected by ERLI.' },
-                    429: { description: 'Application or ERLI request limit exceeded.' },
+                    422: { description: 'Invalid channel, configuration or credentials rejected by the provider.' },
+                    429: { description: 'Application or provider request limit exceeded.' },
                     502: { description: 'Provider request failed or returned invalid data.' },
                 },
             },

@@ -4,9 +4,9 @@ Ten dokument opisuje uzgodniony podział modułu. Przed dodaniem obsługi kolejn
 
 ## Stan obecny i docelowa struktura
 
-Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie `GET /me`.
+Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI i PrestaShop oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie odczytu danych konta z API dostawcy.
 
-Ponowna weryfikacja i odświeżanie danych istniejącego konta ERLI są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Foldery Allegro, eMAG i PrestaShop w drzewie poniżej są planem — dodaj je dopiero wraz z implementacją.
+Ponowna weryfikacja i odświeżanie danych istniejących kont ERLI i PrestaShop są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Foldery Allegro i eMAG w drzewie poniżej są planem — dodaj je dopiero wraz z implementacją.
 
 ```text
 integrations/
@@ -17,7 +17,7 @@ integrations/
 ├── bolma/                         # istniejące źródło katalogu MySQL
 └── marketplace/
     ├── marketplaceIntegration.service.ts
-    ├── marketplaceAdapter.factory.ts  # obecnie obsługuje ERLI
+    ├── marketplaceAdapter.factory.ts  # obecnie obsługuje ERLI i PrestaShop
     ├── repositories/
     │   └── marketplaceIntegrationRepository.ts
     ├── types/
@@ -35,7 +35,9 @@ integrations/
         │   ├── erli.apiClient.ts
         │   └── erli.schema.ts
         └── prestashop/
-            └── prestashop.adapter.ts
+            ├── prestashop.adapter.ts
+            ├── prestashop.apiClient.ts
+            └── prestashop.schema.ts
 ```
 
 ## Podział odpowiedzialności
@@ -58,7 +60,7 @@ integrations/
 
 ## Dodawanie kolejnego dostawcy
 
-1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Obecny kontekst zawiera odszyfrowany klucz API i środowisko. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
+1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Obecny kontekst zawiera odszyfrowany klucz API, środowisko i opcjonalny `baseUrl`. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
 2. Dodaj schemat Zod konfiguracji dostawcy i przygotowanie danych dostępowych po stronie serwera. Nie przekazuj zaszyfrowanych pól bezpośrednio do klienta API ani sekretów do panelu i logów.
 3. Rozszerz `marketplaceAdapter.factory.ts`: zwykłą funkcję wybierającą adapter według `MarketplaceIntegrationChannel`. Nieobsługiwane kanały jawnie odrzucają operację.
 4. Przy tworzeniu konta serwis generuje jego identyfikator przed szyfrowaniem. Przy kolejnych operacjach pobiera konto z bazy. Konfiguracja i dane dostępowe dotyczą konkretnego konta; nie przechowuj jednego globalnego adaptera z tokenem dla całego kanału.
@@ -76,7 +78,17 @@ Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API a
 - Repozytorium zwraca wyłącznie jawną projekcję bez sekretów. Odpowiedź API i log audytowy nie zawierają tokenu ani jego szyfrogramu.
 - Frontend ma osobny formularz `components/erli/ErliConfigurationDialog.tsx`, korzystający ze wspólnych komponentów shadcn/ui. Formularze kolejnych dostawców mogą przyjmować inne dane; nie buduj jednego formularza z rosnącą liczbą warunkowych parametrów.
 - Uprawnienie `INTEGRATION:CREATE` jest częścią wspólnej konfiguracji uprawnień. Nie dodajemy osobnej migracji danych dla jego przypisania; obowiązuje istniejący mechanizm seedowania i zarządzania rolami.
-- Klienci HTTP frontendu są rozdzieleni: `src/api/integrations/IntegrationApiClient.ts` odpowiada za wspólny odczyt i usuwanie, `erli/ErliApiClient.ts` za operacje ERLI, a `bolma/BolmaApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
+- Klienci HTTP frontendu są rozdzieleni: `src/api/integrations/IntegrationApiClient.ts` odpowiada za wspólny odczyt, sprawdzanie połączenia i usuwanie, `erli/ErliApiClient.ts` za operacje ERLI, `prestashop/PrestashopApiClient.ts` za operacje PrestaShop, a `bolma/BolmaApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
+
+## Konfiguracja PrestaShop
+
+- `POST /integrations/marketplace/PRESTASHOP`, body: `{ "baseUrl": "https://sklep.pl", "apiKey": "..." }`. Wymaga `INTEGRATION:CREATE` i korzysta ze wspólnej fabryki, serwisu, szyfrowania i repozytorium. Klucz wymaga uprawnienia GET do zasobu `shops`.
+- Każda instalacja ma swój adres, przechowywany w istniejącym polu `MarketplaceIntegration.baseUrl`, bez nowej zmiennej `.env`. Przyjmujemy adres sklepu (również w podkatalogu) lub kończący się na `/api/`. Zapisujemy znormalizowany adres API z końcowym ukośnikiem.
+- Adapter pobiera `GET <baseUrl>shops?display=full&output_format=JSON&limit=1`. Zgodnie z ustaleniem wybieramy pierwszy zwrócony sklep, bez selektora multistore. Tak samo działa ponowne `checkConnection`; nie przypinamy odczytu do poprzednio zapisanego ID sklepu.
+- Nazwa trafia do `name` i `externalUsername`, ID do `externalAccountId`, aktywność i ID grupy do zwalidowanych `settings`. `CONNECTED` oznacza poprawną autoryzację i odczyt; aktywność sklepu jest niezależna od lokalnego `isEnabled`.
+- [Autoryzacja Webservice PrestaShop](https://devdocs.prestashop-project.org/9/webservice/tutorials/testing-access/) używa nagłówka Basic z kluczem jako nazwą użytkownika i pustym hasłem. Klucz nigdy nie trafia do URL-a. Dane i nazwa sklepu pochodzą z [zasobu shops](https://devdocs.prestashop-project.org/9/webservice/resources/shops/).
+- Adres HTTPS jest ustawiany przez administratora, bez loginu, hasła, query i fragmentu. Klient korzysta ze zwykłego `fetch`, z limitem czasu 10 sekund i wyłączonym śledzeniem przekierowań, analogicznie do ERLI. Nie filtrujemy adresów IP ani nie obsługujemy DNS ręcznie; sklep może działać również w sieci wewnętrznej dostępnej dla backendu.
+- Formularz `components/prestashop/PrestashopConfigurationDialog.tsx` jest oddzielny od ERLI. Wspólne szczegóły pokazują adres API oraz pozwalają sprawdzać połączenie i odświeżać dane. Wspólne usuwanie obejmuje również oferty PrestaShop.
 
 ## Sprawdzanie połączenia i odświeżanie danych
 
@@ -86,7 +98,7 @@ Adapter ERLI realizuje `checkConnection` przez ten sam `GET /me` co przy dodawan
 
 Nieudane sprawdzenie zapisuje `ERROR`, czas sprawdzenia i bezpieczny komunikat błędu w `lastErrorMessage` oraz `lastErrorAt`. Zachowuje wcześniejsze dane sklepu. Zakończona próba zwraca HTTP `200` z `{ integration, error }`; `error` jest `null` przy sukcesie. Błędy samego żądania, brak rekordu i nieobsługiwany kanał zwracają odpowiednie błędy HTTP. Zapis wyniku zawsze wymaga `deletedAt: null`, więc sprawdzenie nie przywróci konta usuniętego w trakcie żądania.
 
-Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach konta ERLI dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
+Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach kont ERLI i PrestaShop dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
 
 ## Usuwanie integracji
 

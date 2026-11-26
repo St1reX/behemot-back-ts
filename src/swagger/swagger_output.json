@@ -4903,7 +4903,7 @@
           "Integrations"
         ],
         "summary": "Check connection and refresh account data",
-        "description": "Requires INTEGRATION:UPDATE. Currently supports ERLI. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled.",
+        "description": "Requires INTEGRATION:UPDATE. Supports ERLI and PrestaShop. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop uses its saved baseUrl and the first returned shop.",
         "security": [
           {
             "cookieAuth": []
@@ -5020,7 +5020,7 @@
           "Integrations"
         ],
         "summary": "Save a marketplace account configuration",
-        "description": "Requires INTEGRATION:CREATE. Currently supports ERLI only. Calls ERLI GET /me and saves the encrypted token, shop identity and CONNECTED status only after a successful response.",
+        "description": "Requires INTEGRATION:CREATE. ERLI accepts {token} and calls GET /me. PRESTASHOP accepts {baseUrl, apiKey} and calls GET shops?display=full&output_format=JSON&limit=1 using Basic authentication with an empty password. Saves encrypted credentials, identity and CONNECTED status after successful validation. PrestaShop selects the first returned shop; the API key requires GET access to shops.",
         "security": [
           {
             "cookieAuth": []
@@ -5047,21 +5047,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "token"
-                ],
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 8192,
-                    "pattern": "^\\S+$",
-                    "writeOnly": true,
-                    "description": "Raw ERLI API key, without the Bearer prefix."
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ErliConfiguration"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PrestashopConfiguration"
                   }
-                }
+                ]
               }
             }
           }
@@ -5118,7 +5111,7 @@
             }
           },
           "422": {
-            "description": "Invalid channel, configuration or token rejected by ERLI.",
+            "description": "Invalid channel, configuration or credentials rejected by the provider.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5128,7 +5121,7 @@
             }
           },
           "429": {
-            "description": "Application or ERLI request limit exceeded.",
+            "description": "Application or provider request limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13009,6 +13002,132 @@
           }
         }
       },
+      "ErliConfiguration": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "additionalProperties": {
+            "type": "boolean",
+            "example": false
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "token"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 8192
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "example": "^\\S+$"
+                  },
+                  "writeOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "PrestashopConfiguration": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "additionalProperties": {
+            "type": "boolean",
+            "example": false
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "baseUrl",
+              "apiKey"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "baseUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 2048
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "HTTPS shop address or API base URL; stored normalized with a trailing /api/ path. No credentials, query or fragment."
+                  }
+                }
+              },
+              "apiKey": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 128
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "example": "^[a-zA-Z0-9]+$"
+                  },
+                  "writeOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "MarketplaceIntegration": {
         "type": "object",
         "properties": {
@@ -13059,6 +13178,19 @@
                     "items": {
                       "type": "string"
                     }
+                  }
+                }
+              },
+              "baseUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
@@ -13251,6 +13383,7 @@
               "id",
               "name",
               "channel",
+              "baseUrl",
               "externalAccountId",
               "externalUsername",
               "environment",

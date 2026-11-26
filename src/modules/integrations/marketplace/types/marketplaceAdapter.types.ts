@@ -10,11 +10,13 @@ export interface MarketplaceAccountData {
 export interface MarketplaceConnectionContext {
     apiKey: string;
     environment: IntegrationEnvironment;
+    baseUrl?: string | null;
 }
 
 export interface PreparedMarketplaceConfiguration extends MarketplaceAccountData {
     channel: MarketplaceIntegrationChannel;
     encryptedApiKey: string;
+    baseUrl?: string;
     status: MarketplaceIntegrationStatus;
     lastConnectionCheckAt: Date;
 }

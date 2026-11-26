@@ -7,6 +7,7 @@ const integrationSelect = {
     id: true,
     name: true,
     channel: true,
+    baseUrl: true,
     externalAccountId: true,
     externalUsername: true,
     environment: true,
