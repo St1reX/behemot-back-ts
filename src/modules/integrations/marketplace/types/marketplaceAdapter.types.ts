@@ -1,11 +1,25 @@
-import type { MarketplaceIntegrationChannel } from '@prisma/client';
+import type { IntegrationEnvironment, MarketplaceIntegrationChannel, MarketplaceIntegrationStatus, Prisma } from '@prisma/client';
 
-export interface PreparedMarketplaceConfiguration {
+export interface MarketplaceAccountData {
     name: string;
+    externalAccountId: string;
+    externalUsername: string;
+    settings: Prisma.InputJsonObject;
+}
+
+export interface MarketplaceConnectionContext {
+    apiKey: string;
+    environment: IntegrationEnvironment;
+}
+
+export interface PreparedMarketplaceConfiguration extends MarketplaceAccountData {
     channel: MarketplaceIntegrationChannel;
     encryptedApiKey: string;
+    status: MarketplaceIntegrationStatus;
+    lastConnectionCheckAt: Date;
 }
 
 export interface MarketplaceAdapter {
-    prepareConfiguration(input: unknown, integrationId: string): PreparedMarketplaceConfiguration;
+    prepareConfiguration(input: unknown, integrationId: string): Promise<PreparedMarketplaceConfiguration>;
+    checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData>;
 }

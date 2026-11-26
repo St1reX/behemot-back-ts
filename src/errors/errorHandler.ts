@@ -12,6 +12,7 @@ export enum ErrorNames {
     RESOURCE_NOT_FOUND = 'ResourceNotFound',
     DATABASE_ERROR = 'DatabaseError',
     INTERNAL_SERVER_ERROR = 'InternalServerError',
+    EXTERNAL_SERVICE_ERROR = 'ExternalServiceError',
     BAD_REQUEST = 'BadRequest',
     FORBIDDEN = 'Forbidden',
     CONFLICT = 'Conflict',

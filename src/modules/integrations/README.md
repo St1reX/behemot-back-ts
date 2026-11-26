@@ -4,9 +4,9 @@ Ten dokument opisuje uzgodniony podział modułu. Przed dodaniem obsługi kolejn
 
 ## Stan obecny i docelowa struktura
 
-Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy oraz zapis konfiguracji ERLI przez serwis marketplace, fabrykę i adapter. Kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje przygotowanie i szyfrowanie danych konfiguracji; nie wywołuje API dostawcy. Konto jest zapisywane ze statusem `PENDING`.
+Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie `GET /me`.
 
-Sprawdzanie połączenia, wymiana tokenu istniejącego konta, OAuth i synchronizacja nie są jeszcze zaimplementowane. Wcześniejszy kontrakt `checkConnection` zastąpiono rzeczywiście obsługiwaną operacją; przy dodawaniu API należy rozszerzyć kontrakt bez tworzenia atrap. Foldery Allegro, eMAG i PrestaShop w drzewie poniżej są planem — dodaj je dopiero wraz z implementacją.
+Ponowna weryfikacja i odświeżanie danych istniejącego konta ERLI są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Foldery Allegro, eMAG i PrestaShop w drzewie poniżej są planem — dodaj je dopiero wraz z implementacją.
 
 ```text
 integrations/
@@ -32,6 +32,7 @@ integrations/
         │   └── emag.adapter.ts
         ├── erli/
         │   ├── erli.adapter.ts
+        │   ├── erli.apiClient.ts
         │   └── erli.schema.ts
         └── prestashop/
             └── prestashop.adapter.ts
@@ -57,7 +58,7 @@ integrations/
 
 ## Dodawanie kolejnego dostawcy
 
-1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Obecny kontrakt obejmuje `prepareConfiguration(input, integrationId)`. Wspólny typ wyniku zawiera tylko pola potrzebne teraz dla klucza API; przy wdrażaniu OAuth rozszerz go o rzeczywiście wymagane dane, zachowując szyfrowanie sekretów.
+1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Obecny kontekst zawiera odszyfrowany klucz API i środowisko. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
 2. Dodaj schemat Zod konfiguracji dostawcy i przygotowanie danych dostępowych po stronie serwera. Nie przekazuj zaszyfrowanych pól bezpośrednio do klienta API ani sekretów do panelu i logów.
 3. Rozszerz `marketplaceAdapter.factory.ts`: zwykłą funkcję wybierającą adapter według `MarketplaceIntegrationChannel`. Nieobsługiwane kanały jawnie odrzucają operację.
 4. Przy tworzeniu konta serwis generuje jego identyfikator przed szyfrowaniem. Przy kolejnych operacjach pobiera konto z bazy. Konfiguracja i dane dostępowe dotyczą konkretnego konta; nie przechowuj jednego globalnego adaptera z tokenem dla całego kanału.
@@ -68,12 +69,32 @@ Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API a
 ## Konfiguracja ERLI
 
 - `POST /integrations/marketplace/ERLI`, body: `{ "token": "..." }`. Wymaga `INTEGRATION:CREATE`, zwraca `201` i bezpieczne dane konta. Inne pola body są odrzucane. Nie przesyłaj prefiksu `Bearer` ani białych znaków wewnątrz tokenu.
-- Adapter nadaje nazwę `ERLI`. Każdy zapis tworzy nowe konto z domyślnym środowiskiem `PRODUCTION` i statusem `PENDING`. Nie potwierdza poprawności tokenu ani tożsamości konta i nie eliminuje duplikatów kont po stronie ERLI — wymaga to przyszłej weryfikacji przez API.
-- [ERLI wymaga klucza API w nagłówku Authorization: Bearer](https://erli.pl/svc/shop-api/doc/). Sam zapis konfiguracji nie wykonuje żądania do ERLI.
+- Podczas dodawania konta adapter wywołuje [GET /me — pobierz mój sklep](https://erli.pl/svc/shop-api/doc/reference/#/shop/get_me). Zapisuje nazwę sklepu w `name` i `externalUsername`, identyfikator jako tekst w `externalAccountId`, status `CONNECTED` i `lastConnectionCheckAt`. W `settings` zapisuje zwalidowane `shopActive`, `scopes` i `markets`.
+- Konto zachowuje domyślne środowisko `PRODUCTION`. Lista rynków nie wskazuje jednoznacznie rynku bazowego, więc nie ustawiamy arbitralnie pola `market`. `shopActive` z ERLI jest niezależne od lokalnego `isEnabled`; `CONNECTED` oznacza skuteczny odczyt danych konta.
+- [ERLI wymaga klucza API w nagłówku Authorization: Bearer](https://erli.pl/svc/shop-api/doc/). Klient ma limit czasu 10 sekund, nie podąża za przekierowaniami i nie ujawnia tokenu ani surowej odpowiedzi w błędach. Odrzucony token zwraca lokalne `422`, bez wylogowywania użytkownika panelu; limit ERLI zwraca `429`.
+- Przy błędzie API lub walidacji odpowiedzi nowe konto nie jest zapisywane. Starsze wpisy `PENDING` można uzupełnić przyciskiem sprawdzania połączenia. Ponowne dodanie tego samego sklepu nadal tworzy osobną konfigurację — model nie wymusza unikalności `channel + externalAccountId`.
 - Repozytorium zwraca wyłącznie jawną projekcję bez sekretów. Odpowiedź API i log audytowy nie zawierają tokenu ani jego szyfrogramu.
 - Frontend ma osobny formularz `components/erli/ErliConfigurationDialog.tsx`, korzystający ze wspólnych komponentów shadcn/ui. Formularze kolejnych dostawców mogą przyjmować inne dane; nie buduj jednego formularza z rosnącą liczbą warunkowych parametrów.
 - Uprawnienie `INTEGRATION:CREATE` jest częścią wspólnej konfiguracji uprawnień. Nie dodajemy osobnej migracji danych dla jego przypisania; obowiązuje istniejący mechanizm seedowania i zarządzania rolami.
-- Klienci HTTP frontendu są rozdzieleni: `src/api/integrations/IntegrationApiClient.ts` odpowiada za wspólny odczyt, `erli/ErliApiClient.ts` za operacje ERLI, a `bolma/BolmaApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
+- Klienci HTTP frontendu są rozdzieleni: `src/api/integrations/IntegrationApiClient.ts` odpowiada za wspólny odczyt i usuwanie, `erli/ErliApiClient.ts` za operacje ERLI, a `bolma/BolmaApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
+
+## Sprawdzanie połączenia i odświeżanie danych
+
+`POST /integrations/marketplace/:id/check-status` wymaga `INTEGRATION:UPDATE`. Serwis pobiera aktywny rekord z wewnętrzną projekcją sekretów, wybiera adapter i odszyfrowuje klucz z kontekstem konkretnego konta. Sekret nie trafia do odpowiedzi ani audytu.
+
+Adapter ERLI realizuje `checkConnection` przez ten sam `GET /me` co przy dodawaniu konta. Środowisko `SANDBOX` jest jawnie odrzucane, zamiast kierowania jego tokenu na produkcyjny endpoint. Sukces odświeża nazwę, identyfikator i ustawienia konta, zapisuje `CONNECTED` oraz `lastConnectionCheckAt` i czyści diagnostykę wcześniejszego błędu. Nie zmienia `isEnabled`.
+
+Nieudane sprawdzenie zapisuje `ERROR`, czas sprawdzenia i bezpieczny komunikat błędu w `lastErrorMessage` oraz `lastErrorAt`. Zachowuje wcześniejsze dane sklepu. Zakończona próba zwraca HTTP `200` z `{ integration, error }`; `error` jest `null` przy sukcesie. Błędy samego żądania, brak rekordu i nieobsługiwany kanał zwracają odpowiednie błędy HTTP. Zapis wyniku zawsze wymaga `deletedAt: null`, więc sprawdzenie nie przywróci konta usuniętego w trakcie żądania.
+
+Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach konta ERLI dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
+
+## Usuwanie integracji
+
+`DELETE /integrations/marketplace/:id` wymaga `INTEGRATION:DELETE`. Usuwanie jest wspólną operacją serwisu i repozytorium, bez udziału adapterów oraz bez zapytań do marketplace. Bolma pochodzi z konfiguracji środowiska i nie podlega temu endpointowi.
+
+Jedna transakcja ustawia `deletedAt` na integracji, powiązanych `ProductExternalListing` oraz `ProductExternalListingFitment`. Oferty nie blokują usunięcia; usuwamy je razem z integracją. Same produkty i ich `ProductFitment` pozostają. Integracja zostaje wyłączona, wszystkie pola tokenów, klucza API i hasła są czyszczone. Audyt zapisuje wyłącznie bezpieczną projekcję konta.
+
+Frontend korzysta ze wspólnego `IntegrationDeleteDialog` i po sukcesie unieważnia zapytania integracji oraz produktów, aby usunięte oferty zniknęły także z widoków produktów. Nie dodajemy migracji danych dla przypisania uprawnienia; obowiązuje istniejący mechanizm zarządzania rolami.
 
 ## Szyfrowanie sekretów
 

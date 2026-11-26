@@ -1,15 +1,35 @@
+import { IntegrationEnvironment, MarketplaceIntegrationChannel, MarketplaceIntegrationStatus } from '@prisma/client';
+import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
 import { encryptSecret } from '../../../../../shared/utils/secretEncryption';
-import { MarketplaceAdapter, PreparedMarketplaceConfiguration } from '../../types/marketplaceAdapter.types';
+import { MarketplaceAccountData, MarketplaceAdapter, MarketplaceConnectionContext, PreparedMarketplaceConfiguration } from '../../types/marketplaceAdapter.types';
 import { ErliConfigurationSchema } from './erli.schema';
+import { ErliApiClient } from './erli.apiClient';
 
 export class ErliAdapter implements MarketplaceAdapter {
-    prepareConfiguration(input: unknown, integrationId: string): PreparedMarketplaceConfiguration {
+    async prepareConfiguration(input: unknown, integrationId: string): Promise<PreparedMarketplaceConfiguration> {
         const { token } = ErliConfigurationSchema.parse(input);
+        const account = await this.checkConnection({ apiKey: token, environment: IntegrationEnvironment.PRODUCTION });
 
         return {
-            name: 'ERLI',
-            channel: 'ERLI',
+            ...account,
+            channel: MarketplaceIntegrationChannel.ERLI,
             encryptedApiKey: encryptSecret(token, `marketplace:${integrationId}:encryptedApiKey`),
+            status: MarketplaceIntegrationStatus.CONNECTED,
+            lastConnectionCheckAt: new Date(),
+        };
+    }
+
+    async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        if (context.environment !== IntegrationEnvironment.PRODUCTION) {
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Środowisko testowe ERLI nie jest jeszcze obsługiwane.');
+        }
+        const shop = await ErliApiClient.getShop(context.apiKey);
+
+        return {
+            name: shop.name,
+            externalAccountId: String(shop.id),
+            externalUsername: shop.name,
+            settings: { shopActive: shop.active, scopes: shop.scopes, markets: shop.markets },
         };
     }
 }
