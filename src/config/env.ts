@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const apiBaseUrlSchema = z.string().url().endsWith('/');
-
 const envSchema = z.object({
     UPLOADS_ROOT_PATH: z.string().min(1).default('uploads'),
     PUBLIC_UPLOADS_URL: z.string().url().optional(),
@@ -12,10 +10,6 @@ const envSchema = z.object({
     BULLMQ_REDIS_URL: z.string().min(1),
     SESSION_SECRET: z.string().min(1),
     INTEGRATION_ENCRYPTION_KEY: z.string().regex(/^[a-f0-9]{64}$/i, 'INTEGRATION_ENCRYPTION_KEY must contain 64 hexadecimal characters (32 random bytes).'),
-    ERLI_API_BASE_URL: apiBaseUrlSchema,
-    EMAG_RO_API_BASE_URL: apiBaseUrlSchema,
-    EMAG_BG_API_BASE_URL: apiBaseUrlSchema,
-    EMAG_HU_API_BASE_URL: apiBaseUrlSchema,
     COOKIE_DOMAIN: z.string().min(1),
     PROD_API_URL: z.string().url(),
     PROD_API_PORT: z.coerce.number().int().positive().max(65535),
@@ -46,12 +40,6 @@ if (!parsedEnv.success) {
 }
 
 export const env = parsedEnv.data;
-
-export const emagApiUrls = {
-    RO: env.EMAG_RO_API_BASE_URL,
-    BG: env.EMAG_BG_API_BASE_URL,
-    HU: env.EMAG_HU_API_BASE_URL,
-} as const;
 
 export const isProduction = env.NODE_ENV === 'production';
 export const isDevelopment = env.NODE_ENV === 'development';

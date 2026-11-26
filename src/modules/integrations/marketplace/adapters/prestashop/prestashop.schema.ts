@@ -1,14 +1,7 @@
 import { z } from 'zod';
+import { ApiBaseUrlSchema } from '../../schemas/apiBaseUrl.schema';
 
-export const PrestashopBaseUrlSchema = z.string().trim().url('Podaj prawidłowy adres sklepu.').max(2048)
-    .refine((value) => {
-        try {
-            const url = new URL(value);
-            return url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash;
-        } catch {
-            return false;
-        }
-    }, 'Podaj adres HTTPS bez danych logowania, parametrów i fragmentu URL.')
+export const PrestashopBaseUrlSchema = ApiBaseUrlSchema
     .transform((value) => {
         const url = new URL(value);
         const path = url.pathname.replace(/\/+$/, '');

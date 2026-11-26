@@ -4903,7 +4903,7 @@
           "Integrations"
         ],
         "summary": "Check connection and refresh account data",
-        "description": "Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG checks API access through product_offer/count on the stored market endpoint (RO for legacy records without a market); its public API has no seller-profile endpoint.",
+        "description": "Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. Uses the API base URL stored on the integration. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG requires an explicit stored market and checks API access through product_offer/count; its public API has no seller-profile endpoint.",
         "security": [
           {
             "cookieAuth": []
@@ -5020,7 +5020,7 @@
           "Integrations"
         ],
         "summary": "Save a marketplace account configuration",
-        "description": "Requires INTEGRATION:CREATE. ERLI accepts {token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {username, password}, with an email username. All channels use the same creation service. ERLI and PRESTASHOP return one integration with HTTP 201 and reject duplicate configurations with HTTP 409. EMAG checks RO, BG and HU using the same credentials and creates a separate integration for each accessible market. HTTP 200 returns per-market CONNECTED, EXISTING or ERROR results; a failed market does not block the others.",
+        "description": "Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with an email username and one selected market: RO, BG or HU. Every channel requires its API URL, verifies the connection and saves one integration with HTTP 201. Duplicate configurations return HTTP 409. Credentials are encrypted; the API URL and selected market are stored on the integration.",
         "security": [
           {
             "cookieAuth": []
@@ -5063,16 +5063,6 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Market configuration attempts completed; inspect each result.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarketplaceCreationResponse"
-                }
-              }
-            }
-          },
           "201": {
             "description": "Configuration and verified shop identity saved.",
             "content": {
@@ -13039,6 +13029,8 @@
           "required": {
             "type": "array",
             "example": [
+              "baseUrl",
+              "market",
               "username",
               "password"
             ],
@@ -13049,6 +13041,47 @@
           "properties": {
             "type": "object",
             "properties": {
+              "baseUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 2048
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "HTTPS API base URL for the selected market. No credentials, query or fragment; normalized with a trailing slash."
+                  }
+                }
+              },
+              "market": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "RO",
+                      "BG",
+                      "HU"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
               "username": {
                 "type": "object",
                 "properties": {
@@ -13105,6 +13138,7 @@
           "required": {
             "type": "array",
             "example": [
+              "baseUrl",
               "token"
             ],
             "items": {
@@ -13114,6 +13148,27 @@
           "properties": {
             "type": "object",
             "properties": {
+              "baseUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 2048
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "HTTPS API base URL. No credentials, query or fragment; normalized with a trailing slash."
+                  }
+                }
+              },
               "token": {
                 "type": "object",
                 "properties": {
@@ -13485,105 +13540,6 @@
               "lastErrorAt",
               "createdAt",
               "updatedAt"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "MarketplaceCreationResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "results": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "array"
-                  },
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "example": "object"
-                      },
-                      "properties": {
-                        "type": "object",
-                        "properties": {
-                          "market": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              }
-                            }
-                          },
-                          "status": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "enum": {
-                                "type": "array",
-                                "example": [
-                                  "CONNECTED",
-                                  "EXISTING",
-                                  "ERROR"
-                                ],
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          },
-                          "error": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "required": {
-                        "type": "array",
-                        "example": [
-                          "market",
-                          "status",
-                          "error"
-                        ],
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "required": {
-            "type": "array",
-            "example": [
-              "results"
             ],
             "items": {
               "type": "string"

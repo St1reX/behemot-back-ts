@@ -7,8 +7,7 @@ import { createMarketplaceAdapter } from './marketplaceAdapter.factory';
 import { MarketplaceIntegrationRepository } from './repositories/marketplaceIntegrationRepository';
 import { AppError, ErrorNames } from '../../../errors/errorHandler';
 import { decryptSecret } from '../../../shared/utils/secretEncryption';
-import { MarketplaceAccountData, MarketplaceCreationResult, PreparedMarketplaceConfiguration } from './types/marketplaceAdapter.types';
-import { ZodError } from 'zod';
+import { MarketplaceAccountData } from './types/marketplaceAdapter.types';
 
 export class MarketplaceIntegrationService {
     static async checkConnection(integrationId: string) {
@@ -72,41 +71,24 @@ export class MarketplaceIntegrationService {
 
     static async createIntegration(channel: MarketplaceIntegrationChannel, input: unknown) {
         const adapter = createMarketplaceAdapter(channel);
-        const results: MarketplaceCreationResult[] = [];
+        const id = randomUUID();
+        const configuration = await adapter.prepareConfiguration(input, id);
 
-        for (const market of adapter.markets ?? [undefined]) {
-            const id = randomUUID();
-            let configuration: PreparedMarketplaceConfiguration;
-            try {
-                configuration = await adapter.prepareConfiguration(input, id, market);
-            } catch (error) {
-                if (market === undefined || error instanceof ZodError) throw error;
-                results.push({ market, status: 'ERROR', error: error instanceof AppError ? error.message : 'Nie udało się połączyć z tym rynkiem.' });
-                continue;
-            }
-
-            if (await MarketplaceIntegrationRepository.findExisting(configuration)) {
-                if (market === undefined) {
-                    throw new AppError(ErrorNames.CONFLICT, 409, 'Ta integracja jest już dodana.');
-                }
-                results.push({ market, status: 'EXISTING', error: null });
-                continue;
-            }
-            const integration = await MarketplaceIntegrationRepository.create(id, configuration);
-            await createAuditLog({
-                entityName: ENTITIES.INTEGRATION,
-                entityId: integration.id,
-                action: ACTIONS.CREATE,
-                operationStatus: OperationStatus.SUCCESS,
-                dataBefore: null,
-                dataAfter: integration,
-            });
-
-            if (market === undefined) return integration;
-            results.push({ market, status: 'CONNECTED', error: null });
+        if (await MarketplaceIntegrationRepository.findExisting(configuration)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Ta integracja jest już dodana.');
         }
 
-        return { results };
+        const integration = await MarketplaceIntegrationRepository.create(id, configuration);
+        await createAuditLog({
+            entityName: ENTITIES.INTEGRATION,
+            entityId: integration.id,
+            action: ACTIONS.CREATE,
+            operationStatus: OperationStatus.SUCCESS,
+            dataBefore: null,
+            dataAfter: integration,
+        });
+
+        return integration;
     }
 
     static async deleteIntegration(integrationId: string) {

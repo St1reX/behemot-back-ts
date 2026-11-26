@@ -29,10 +29,10 @@ export class MarketplaceIntegrationRepository {
                 channel: configuration.channel,
                 environment: IntegrationEnvironment.PRODUCTION,
                 market: configuration.market ?? null,
+                baseUrl: configuration.baseUrl,
                 deletedAt: null,
                 ...(configuration.externalAccountId !== null ? {
                     externalAccountId: configuration.externalAccountId,
-                    baseUrl: configuration.baseUrl ?? null,
                 } : {
                     externalUsername: { equals: configuration.externalUsername, mode: 'insensitive' },
                 }),

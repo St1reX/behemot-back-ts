@@ -1,13 +1,12 @@
 import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
-import { EmagMarket, EmagResponseSchema } from './emag.schema';
-import { emagApiUrls } from '../../../../../config/env';
+import { EmagResponseSchema } from './emag.schema';
 
 export class EmagApiClient {
-    static async checkConnection(market: EmagMarket, username: string, password: string): Promise<void> {
+    static async checkConnection(baseUrl: string, username: string, password: string): Promise<void> {
         let response: Response;
         let body: unknown;
         try {
-            response = await fetch(new URL('product_offer/count', emagApiUrls[market]), {
+            response = await fetch(new URL('product_offer/count', baseUrl), {
                 method: 'POST',
                 headers: {
                     Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,

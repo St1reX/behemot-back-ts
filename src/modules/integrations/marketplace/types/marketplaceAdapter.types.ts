@@ -21,19 +21,12 @@ export interface PreparedMarketplaceConfiguration extends MarketplaceAccountData
     encryptedApiKey?: string;
     encryptedPassword?: string;
     market?: string;
-    baseUrl?: string;
+    baseUrl: string;
     status: MarketplaceIntegrationStatus;
     lastConnectionCheckAt: Date;
 }
 
 export interface MarketplaceAdapter {
-    readonly markets?: readonly string[];
-    prepareConfiguration(input: unknown, integrationId: string, market?: string): Promise<PreparedMarketplaceConfiguration>;
+    prepareConfiguration(input: unknown, integrationId: string): Promise<PreparedMarketplaceConfiguration>;
     checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData>;
-}
-
-export interface MarketplaceCreationResult {
-    market: string;
-    status: 'CONNECTED' | 'EXISTING' | 'ERROR';
-    error: string | null;
 }

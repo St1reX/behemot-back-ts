@@ -1,6 +1,8 @@
 import { z } from 'zod';
+import { ApiBaseUrlSchema } from '../../schemas/apiBaseUrl.schema';
 
 export const ErliConfigurationSchema = z.object({
+    baseUrl: ApiBaseUrlSchema,
     token: z.string().trim().min(1, 'Podaj token API ERLI.').max(8192, 'Token jest zbyt długi.')
         .regex(/^\S+$/u, 'Token nie może zawierać białych znaków.'),
 }).strict();
