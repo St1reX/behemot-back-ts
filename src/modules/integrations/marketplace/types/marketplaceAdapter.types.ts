@@ -2,20 +2,23 @@ import type { IntegrationEnvironment, MarketplaceIntegrationChannel, Marketplace
 
 export interface MarketplaceAccountData {
     name: string;
-    externalAccountId: string;
+    externalAccountId: string | null;
     externalUsername: string;
     settings: Prisma.InputJsonObject;
 }
 
 export interface MarketplaceConnectionContext {
-    apiKey: string;
+    apiKey?: string;
+    username?: string | null;
+    password?: string;
     environment: IntegrationEnvironment;
     baseUrl?: string | null;
 }
 
 export interface PreparedMarketplaceConfiguration extends MarketplaceAccountData {
     channel: MarketplaceIntegrationChannel;
-    encryptedApiKey: string;
+    encryptedApiKey?: string;
+    encryptedPassword?: string;
     baseUrl?: string;
     status: MarketplaceIntegrationStatus;
     lastConnectionCheckAt: Date;

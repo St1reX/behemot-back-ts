@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { IntegrationEnvironment, Prisma } from '@prisma/client';
 import { prisma } from '../../../../config/database';
 import { PreparedMarketplaceConfiguration } from '../types/marketplaceAdapter.types';
 
@@ -23,11 +23,28 @@ const integrationSelect = {
 } satisfies Prisma.MarketplaceIntegrationSelect;
 
 export class MarketplaceIntegrationRepository {
+    static findExisting(configuration: PreparedMarketplaceConfiguration) {
+        return prisma.marketplaceIntegration.findFirst({
+            where: {
+                channel: configuration.channel,
+                environment: IntegrationEnvironment.PRODUCTION,
+                deletedAt: null,
+                ...(configuration.externalAccountId !== null ? {
+                    externalAccountId: configuration.externalAccountId,
+                    baseUrl: configuration.baseUrl ?? null,
+                } : {
+                    externalUsername: { equals: configuration.externalUsername, mode: 'insensitive' },
+                }),
+            },
+            select: { id: true },
+        });
+    }
+
     // Internal use only. Never return this projection from a controller or put it in audit logs.
     static findForConnectionCheck(id: string) {
         return prisma.marketplaceIntegration.findFirst({
             where: { id, deletedAt: null },
-            select: { ...integrationSelect, encryptedApiKey: true },
+            select: { ...integrationSelect, encryptedApiKey: true, encryptedPassword: true },
         });
     }
 

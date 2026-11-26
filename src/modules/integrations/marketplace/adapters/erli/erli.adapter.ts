@@ -20,6 +20,9 @@ export class ErliAdapter implements MarketplaceAdapter {
     }
 
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        if (!context.apiKey) {
+            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma zapisanego tokenu API ERLI.');
+        }
         if (context.environment !== IntegrationEnvironment.PRODUCTION) {
             throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Środowisko testowe ERLI nie jest jeszcze obsługiwane.');
         }

@@ -41,8 +41,8 @@ export class IntegrationController {
     ) {
         try {
             const { channel } = MarketplaceChannelParamsSchema.parse(req.params);
-            const integration = await MarketplaceIntegrationService.createIntegration(channel, req.body);
             res.setHeader('Cache-Control', 'no-store');
+            const integration = await MarketplaceIntegrationService.createIntegration(channel, req.body);
             res.status(201).json(integration);
         } catch (error) {
             next(error);

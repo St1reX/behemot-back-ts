@@ -16,17 +16,21 @@ export class MarketplaceIntegrationService {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
         }
 
-        const { encryptedApiKey, ...integrationBefore } = storedIntegration;
+        const { encryptedApiKey, encryptedPassword, ...integrationBefore } = storedIntegration;
         const adapter = createMarketplaceAdapter(storedIntegration.channel);
         let account: MarketplaceAccountData | null = null;
         let errorMessage: string | null = null;
 
         try {
-            if (!encryptedApiKey) {
-                throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma zapisanego tokenu API.');
-            }
-            const apiKey = decryptSecret(encryptedApiKey, `marketplace:${integrationId}:encryptedApiKey`);
-            account = await adapter.checkConnection({ apiKey, environment: storedIntegration.environment, baseUrl: storedIntegration.baseUrl });
+            const apiKey = encryptedApiKey ? decryptSecret(encryptedApiKey, `marketplace:${integrationId}:encryptedApiKey`) : undefined;
+            const password = encryptedPassword ? decryptSecret(encryptedPassword, `marketplace:${integrationId}:encryptedPassword`) : undefined;
+            account = await adapter.checkConnection({
+                apiKey,
+                password,
+                username: storedIntegration.externalUsername,
+                environment: storedIntegration.environment,
+                baseUrl: storedIntegration.baseUrl,
+            });
         } catch (error) {
             errorMessage = error instanceof AppError
                 ? error.message
@@ -68,6 +72,9 @@ export class MarketplaceIntegrationService {
         const id = randomUUID();
         const adapter = createMarketplaceAdapter(channel);
         const configuration = await adapter.prepareConfiguration(input, id);
+        if (await MarketplaceIntegrationRepository.findExisting(configuration)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Ta integracja jest już dodana.');
+        }
         const integration = await MarketplaceIntegrationRepository.create(id, configuration);
 
         await createAuditLog({

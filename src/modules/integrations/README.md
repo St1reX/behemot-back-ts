@@ -4,9 +4,9 @@ Ten dokument opisuje uzgodniony podział modułu. Przed dodaniem obsługi kolejn
 
 ## Stan obecny i docelowa struktura
 
-Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI i PrestaShop oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie odczytu danych konta z API dostawcy.
+Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI, PrestaShop i eMAG oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie odczytu danych konta z API dostawcy.
 
-Ponowna weryfikacja i odświeżanie danych istniejących kont ERLI i PrestaShop są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Foldery Allegro i eMAG w drzewie poniżej są planem — dodaj je dopiero wraz z implementacją.
+Ponowna weryfikacja i odświeżanie danych istniejących kont ERLI, PrestaShop i eMAG są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Folder Allegro w drzewie poniżej jest planem — dodaj go dopiero wraz z implementacją.
 
 ```text
 integrations/
@@ -17,7 +17,7 @@ integrations/
 ├── bolma/                         # istniejące źródło katalogu MySQL
 └── marketplace/
     ├── marketplaceIntegration.service.ts
-    ├── marketplaceAdapter.factory.ts  # obecnie obsługuje ERLI i PrestaShop
+    ├── marketplaceAdapter.factory.ts  # obecnie obsługuje ERLI, PrestaShop i eMAG
     ├── repositories/
     │   └── marketplaceIntegrationRepository.ts
     ├── types/
@@ -29,7 +29,9 @@ integrations/
         │   ├── allegro.adapter.ts
         │   └── allegro.schema.ts     # walidacja konfiguracji dostawcy
         ├── emag/
-        │   └── emag.adapter.ts
+        │   ├── emag.adapter.ts
+        │   ├── emag.apiClient.ts
+        │   └── emag.schema.ts
         ├── erli/
         │   ├── erli.adapter.ts
         │   ├── erli.apiClient.ts
@@ -44,7 +46,7 @@ integrations/
 
 - Wspólny serwis integracji składa dane do panelu.
 - Serwis marketplace koordynuje operacje na kontach i zapis ich wyników.
-- Repozytorium marketplace odpowiada za dostęp do tabeli `MarketplaceIntegration`. Odczyt dla panelu jawnie wyklucza dane dostępowe i surowe ustawienia.
+- Repozytorium marketplace odpowiada za dostęp do tabeli `MarketplaceIntegration`. Odczyt dla panelu jawnie wyklucza sekrety i surowe ustawienia. Login konta w `externalUsername` może być prezentowany w panelu.
 - Adapter waliduje konfigurację dostawcy i przygotowuje szyfrowane dane do zapisu. Docelowo odpowiada także za komunikację z dostawcą, mapowanie odpowiedzi i błędów. Nie obsługuje żądań Express ani zapisu przez Prisma.
 - Bolma pozostaje niezależnym źródłem katalogu; nie implementuje kontraktu marketplace.
 
@@ -60,7 +62,7 @@ integrations/
 
 ## Dodawanie kolejnego dostawcy
 
-1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Obecny kontekst zawiera odszyfrowany klucz API, środowisko i opcjonalny `baseUrl`. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
+1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Kontekst zawiera dane potrzebne przez poszczególne adaptery: opcjonalny odszyfrowany klucz API lub login i odszyfrowane hasło, środowisko i opcjonalny `baseUrl`. Każdy adapter waliduje swój wymagany zestaw danych. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
 2. Dodaj schemat Zod konfiguracji dostawcy i przygotowanie danych dostępowych po stronie serwera. Nie przekazuj zaszyfrowanych pól bezpośrednio do klienta API ani sekretów do panelu i logów.
 3. Rozszerz `marketplaceAdapter.factory.ts`: zwykłą funkcję wybierającą adapter według `MarketplaceIntegrationChannel`. Nieobsługiwane kanały jawnie odrzucają operację.
 4. Przy tworzeniu konta serwis generuje jego identyfikator przed szyfrowaniem. Przy kolejnych operacjach pobiera konto z bazy. Konfiguracja i dane dostępowe dotyczą konkretnego konta; nie przechowuj jednego globalnego adaptera z tokenem dla całego kanału.
@@ -90,15 +92,28 @@ Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API a
 - Adres HTTPS jest ustawiany przez administratora, bez loginu, hasła, query i fragmentu. Klient korzysta ze zwykłego `fetch`, z limitem czasu 10 sekund i wyłączonym śledzeniem przekierowań, analogicznie do ERLI. Nie filtrujemy adresów IP ani nie obsługujemy DNS ręcznie; sklep może działać również w sieci wewnętrznej dostępnej dla backendu.
 - Formularz `components/prestashop/PrestashopConfigurationDialog.tsx` jest oddzielny od ERLI. Wspólne szczegóły pokazują adres API oraz pozwalają sprawdzać połączenie i odświeżać dane. Wspólne usuwanie obejmuje również oferty PrestaShop.
 
+## Konfiguracja eMAG
+
+- Jeden wpis na konto, bez obsługi osobnych rynków. `POST /integrations/marketplace/EMAG` przyjmuje `{ "username": "konto@example.com", "password": "..." }` i zwraca HTTP 201 z integracją, tak samo jak ERLI i PrestaShop.
+- eMAG ma dokładnie trzy pliki: `emag.adapter.ts`, `emag.apiClient.ts`, `emag.schema.ts`. Adapter korzysta ze wspólnego serwisu i repozytorium. Nie ma osobnego serwisu eMAG, pętli krajów, specjalnych metod zapisu ani blokad SQL.
+- E-mail trafia do `externalUsername`, a hasło do `encryptedPassword`, szyfrowane z kontekstem `marketplace:<integrationId>:encryptedPassword`.
+- Sprawdzanie dostępu wykonuje `POST https://marketplace-api.emag.ro/api-3/product_offer/count` przez HTTP Basic. Na obecnym etapie używamy wyłącznie endpointu RO. Wymagane są uprawnienia API i dozwolone IP serwera. Odpowiedź musi zawierać `isError: false`.
+- Publiczna dokumentacja eMAG nie udostępnia odpowiednika profilu `/me`. Nazwa konfiguracji pochodzi z e-maila, `externalAccountId` pozostaje `null`. Nie zgadujemy tożsamości sprzedawcy na podstawie ofert.
+- Formularz ma tylko e-mail i hasło, a po sukcesie zamyka się i odświeża listę, tak samo jak pozostałe integracje. Sprawdzanie połączenia i usuwanie korzystają ze wspólnych metod.
+
+## Wspólna walidacja duplikatów
+
+Przed zapisem `MarketplaceIntegrationService.createIntegration` wywołuje `MarketplaceIntegrationRepository.findExisting`. Dla kont ze zdalnym ID sprawdzamy kanał, środowisko, ID i adres instalacji (istotne dla PrestaShop). Gdy zdalne ID nie jest dostępne, sprawdzamy kanał, środowisko i nazwę użytkownika bez rozróżniania wielkości liter — tak działa eMAG. Usunięte wpisy są pomijane. Duplikat zwraca HTTP 409. To zwykła walidacja w aplikacji, zgodna z pozostałymi modułami; nie dodajemy specjalnych blokad SQL ani migracji.
+
 ## Sprawdzanie połączenia i odświeżanie danych
 
-`POST /integrations/marketplace/:id/check-status` wymaga `INTEGRATION:UPDATE`. Serwis pobiera aktywny rekord z wewnętrzną projekcją sekretów, wybiera adapter i odszyfrowuje klucz z kontekstem konkretnego konta. Sekret nie trafia do odpowiedzi ani audytu.
+`POST /integrations/marketplace/:id/check-status` wymaga `INTEGRATION:UPDATE`. Serwis pobiera aktywny rekord z wewnętrzną projekcją sekretów, wybiera adapter i odszyfrowuje klucz lub hasło z kontekstem konkretnego konta. Sekret nie trafia do odpowiedzi ani audytu.
 
 Adapter ERLI realizuje `checkConnection` przez ten sam `GET /me` co przy dodawaniu konta. Środowisko `SANDBOX` jest jawnie odrzucane, zamiast kierowania jego tokenu na produkcyjny endpoint. Sukces odświeża nazwę, identyfikator i ustawienia konta, zapisuje `CONNECTED` oraz `lastConnectionCheckAt` i czyści diagnostykę wcześniejszego błędu. Nie zmienia `isEnabled`.
 
 Nieudane sprawdzenie zapisuje `ERROR`, czas sprawdzenia i bezpieczny komunikat błędu w `lastErrorMessage` oraz `lastErrorAt`. Zachowuje wcześniejsze dane sklepu. Zakończona próba zwraca HTTP `200` z `{ integration, error }`; `error` jest `null` przy sukcesie. Błędy samego żądania, brak rekordu i nieobsługiwany kanał zwracają odpowiednie błędy HTTP. Zapis wyniku zawsze wymaga `deletedAt: null`, więc sprawdzenie nie przywróci konta usuniętego w trakcie żądania.
 
-Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach kont ERLI i PrestaShop dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
+Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach kont ERLI, PrestaShop i eMAG dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
 
 ## Usuwanie integracji
 

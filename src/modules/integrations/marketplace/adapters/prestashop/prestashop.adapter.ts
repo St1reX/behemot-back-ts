@@ -20,6 +20,9 @@ export class PrestashopAdapter implements MarketplaceAdapter {
     }
 
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        if (!context.apiKey) {
+            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma zapisanego klucza API PrestaShop.');
+        }
         const parsedUrl = PrestashopBaseUrlSchema.safeParse(context.baseUrl);
         if (!parsedUrl.success) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma poprawnego adresu HTTPS sklepu PrestaShop.');
