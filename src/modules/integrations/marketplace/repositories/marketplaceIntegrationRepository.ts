@@ -45,7 +45,7 @@ export class MarketplaceIntegrationRepository {
     static findForConnectionCheck(id: string) {
         return prisma.marketplaceIntegration.findFirst({
             where: { id, deletedAt: null },
-            select: { ...integrationSelect, encryptedApiKey: true, encryptedPassword: true },
+            select: { ...integrationSelect, encryptedApiKey: true, encryptedPassword: true, encryptedAccessToken: true },
         });
     }
 
@@ -61,6 +61,14 @@ export class MarketplaceIntegrationRepository {
     static findById(id: string) {
         return prisma.marketplaceIntegration.findFirst({
             where: { id, deletedAt: null },
+            select: integrationSelect,
+        });
+    }
+
+    static updateConfiguration(id: string, configuration: PreparedMarketplaceConfiguration) {
+        return prisma.marketplaceIntegration.update({
+            where: { id, channel: configuration.channel, deletedAt: null },
+            data: { ...configuration, lastErrorAt: null, lastErrorMessage: null },
             select: integrationSelect,
         });
     }

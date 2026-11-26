@@ -26,6 +26,17 @@ const marketplaceIntegration = object({
 module.exports = {
     tags: [{ name: 'Integrations', description: 'Integration overview and configuration. Credentials and settings are never returned.' }],
     schemas: {
+        AllegroAuthorization: {
+            type: 'object', additionalProperties: false, required: ['baseUrl', 'clientId', 'clientSecret'],
+            properties: {
+                baseUrl: { type: 'string', format: 'uri', maxLength: 2048, description: 'API base URL supplied in the form and stored on the integration. HTTPS without credentials, query or fragment; normalized with a trailing slash.' },
+                clientId: { type: 'string', minLength: 1, maxLength: 255, pattern: '^[a-zA-Z0-9-]+$', writeOnly: true },
+                clientSecret: { type: 'string', minLength: 1, maxLength: 4096, writeOnly: true },
+                integrationId: { ...uuid, description: 'Optional existing Allegro integration to reconnect. Must authorize the same account.' },
+            },
+        },
+        AllegroAuthorizationResponse: object({ authorizationUrl: { type: 'string', format: 'uri' } }),
+        AllegroApplicationConfiguration: object({ callbackUrl: { type: 'string', format: 'uri' } }),
         EmagConfiguration: {
             type: 'object', additionalProperties: false, required: ['baseUrl', 'market', 'username', 'password'],
             properties: {
@@ -69,11 +80,55 @@ module.exports = {
         }),
     },
     paths: {
+        '/integrations/allegro/configuration': {
+            get: {
+                tags: ['Integrations'], summary: 'Read Allegro redirect URI',
+                description: 'Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE. Returns only the redirect URI derived from the backend public URL. Application credentials are entered in the authorization form and never returned.',
+                security: [{ cookieAuth: [] }],
+                responses: {
+                    200: { description: 'Callback URL.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AllegroApplicationConfiguration' } } } },
+                    401: { description: 'User not authenticated.' },
+                    403: { description: 'Missing integration privileges.' },
+                },
+            },
+        },
+        '/integrations/allegro/authorize': {
+            post: {
+                tags: ['Integrations'], summary: 'Start Allegro OAuth2 Authorization Code',
+                description: 'Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE, enforced by route middleware. Requires API base URL, Client ID and Client Secret from the form. Returns an Allegro authorization URL. Credentials and the server-generated redirect URI are held in encrypted, session-bound state for up to 10 minutes, consumed once, then credentials are stored encrypted on the verified integration. Requests only allegro:api:profile:read. No application credentials are read from the environment.',
+                security: [{ cookieAuth: [] }],
+                requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AllegroAuthorization' } } } },
+                responses: {
+                    200: { description: 'Navigate the browser to authorizationUrl.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AllegroAuthorizationResponse' } } } },
+                    401: { description: 'User not authenticated.' },
+                    403: { description: 'Missing privilege for the requested operation.' },
+                    404: { description: 'Integration to reconnect not found.' },
+                    422: { description: 'Invalid API URL or integration identifier.' },
+                },
+            },
+        },
+        '/integrations/allegro/callback': {
+            get: {
+                tags: ['Integrations'], summary: 'Complete Allegro OAuth2 and return to the integrations page',
+                description: 'Browser callback registered in Allegro Developer. Route middleware requires authentication and both INTEGRATION:CREATE and INTEGRATION:UPDATE. Requires the initiating session and consumes state before exchanging code using Basic authentication with submitted application credentials and the redirect URI saved at authorization start. Verifies identity through GET /me, then uses the shared integration service and duplicate checks. Stores encrypted application credentials, access/refresh tokens and expiry. Reconnection retains the integration ID and requires the same Allegro account. Handles cancellation and errors through safe return messages.',
+                security: [{ cookieAuth: [] }],
+                parameters: [
+                    { name: 'state', in: 'query', required: true, schema: { type: 'string', pattern: '^[a-f0-9]{64}$' } },
+                    { name: 'code', in: 'query', schema: { type: 'string', maxLength: 4096 } },
+                    { name: 'error', in: 'query', schema: { type: 'string', maxLength: 255 } },
+                ],
+                responses: {
+                    303: { description: 'Redirect to the frontend integrations page with connected, cancelled or error result.', headers: { Location: { schema: { type: 'string', format: 'uri' } } } },
+                    401: { description: 'User not authenticated.' },
+                    403: { description: 'Missing INTEGRATION:CREATE or INTEGRATION:UPDATE privilege.' },
+                },
+            },
+        },
         '/integrations/marketplace/{id}/check-status': {
             post: {
                 tags: ['Integrations'],
                 summary: 'Check connection and refresh account data',
-                description: 'Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. Uses the API base URL stored on the integration. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG requires an explicit stored market and checks API access through product_offer/count; its public API has no seller-profile endpoint.',
+                description: 'Requires INTEGRATION:UPDATE. Supports Allegro, ERLI, PrestaShop and eMAG. Uses the stored API URL. Allegro calls GET /me with its stored access token; missing, expired or rejected tokens require OAuth reconnection. Tokens are not refreshed and requests are not retried. A completed check returns HTTP 200 with the updated integration and an optional safe error. Failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG uses product_offer/count.',
                 security: [{ cookieAuth: [] }],
                 parameters: [{ name: 'id', in: 'path', required: true, schema: uuid }],
                 responses: {
@@ -90,9 +145,9 @@ module.exports = {
             post: {
                 tags: ['Integrations'],
                 summary: 'Save a marketplace account configuration',
-                description: 'Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with an email username and one selected market: RO, BG or HU. Every channel requires its API URL, verifies the connection and saves one integration with HTTP 201. Duplicate configurations return HTTP 409. Credentials are encrypted; the API URL and selected market are stored on the integration.',
+                description: 'Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with one selected market: RO, BG or HU. These channels save one integration with HTTP 201; duplicates return HTTP 409. Allegro must use POST /integrations/allegro/authorize; direct creation through this endpoint is rejected.',
                 security: [{ cookieAuth: [] }],
-                parameters: [{ name: 'channel', in: 'path', required: true, schema: { type: 'string', enum: ['ALLEGRO', 'EMAG', 'ERLI', 'PRESTASHOP'] } }],
+                parameters: [{ name: 'channel', in: 'path', required: true, schema: { type: 'string', enum: ['EMAG', 'ERLI', 'PRESTASHOP'] } }],
                 requestBody: {
                     required: true,
                     content: { 'application/json': { schema: { oneOf: [

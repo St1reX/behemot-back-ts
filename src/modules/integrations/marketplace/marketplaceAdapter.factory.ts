@@ -4,9 +4,12 @@ import { ErliAdapter } from './adapters/erli/erli.adapter';
 import { PrestashopAdapter } from './adapters/prestashop/prestashop.adapter';
 import { EmagAdapter } from './adapters/emag/emag.adapter';
 import { MarketplaceAdapter } from './types/marketplaceAdapter.types';
+import { AllegroAdapter } from './adapters/allegro/allegro.adapter';
 
 export function createMarketplaceAdapter(channel: MarketplaceIntegrationChannel): MarketplaceAdapter {
     switch (channel) {
+        case MarketplaceIntegrationChannel.ALLEGRO:
+            return new AllegroAdapter();
         case MarketplaceIntegrationChannel.ERLI:
             return new ErliAdapter();
         case MarketplaceIntegrationChannel.PRESTASHOP:

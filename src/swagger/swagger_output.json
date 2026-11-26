@@ -4897,13 +4897,329 @@
         }
       }
     },
+    "/integrations/allegro/configuration": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Read Allegro redirect URI",
+        "description": "Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE. Returns only the redirect URI derived from the backend public URL. Application credentials are entered in the authorization form and never returned.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Callback URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllegroApplicationConfiguration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing integration privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/allegro/authorize": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Start Allegro OAuth2 Authorization Code",
+        "description": "Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE, enforced by route middleware. Requires API base URL, Client ID and Client Secret from the form. Returns an Allegro authorization URL. Credentials and the server-generated redirect URI are held in encrypted, session-bound state for up to 10 minutes, consumed once, then credentials are stored encrypted on the verified integration. Requests only allegro:api:profile:read. No application credentials are read from the environment.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllegroAuthorization"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Navigate the browser to authorizationUrl.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllegroAuthorizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing privilege for the requested operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration to reconnect not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid API URL or integration identifier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/allegro/callback": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Complete Allegro OAuth2 and return to the integrations page",
+        "description": "Browser callback registered in Allegro Developer. Route middleware requires authentication and both INTEGRATION:CREATE and INTEGRATION:UPDATE. Requires the initiating session and consumes state before exchanging code using Basic authentication with submitted application credentials and the redirect URI saved at authorization start. Verifies identity through GET /me, then uses the shared integration service and duplicate checks. Stores encrypted application credentials, access/refresh tokens and expiry. Reconnection retains the integration ID and requires the same Allegro account. Handles cancellation and errors through safe return messages.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 4096
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the frontend integrations page with connected, cancelled or error result.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing INTEGRATION:CREATE or INTEGRATION:UPDATE privilege.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/integrations/marketplace/{id}/check-status": {
       "post": {
         "tags": [
           "Integrations"
         ],
         "summary": "Check connection and refresh account data",
-        "description": "Requires INTEGRATION:UPDATE. Supports ERLI, PrestaShop and eMAG. Uses the API base URL stored on the integration. A completed check returns HTTP 200 with the updated integration and an optional safe error. Connection failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG requires an explicit stored market and checks API access through product_offer/count; its public API has no seller-profile endpoint.",
+        "description": "Requires INTEGRATION:UPDATE. Supports Allegro, ERLI, PrestaShop and eMAG. Uses the stored API URL. Allegro calls GET /me with its stored access token; missing, expired or rejected tokens require OAuth reconnection. Tokens are not refreshed and requests are not retried. A completed check returns HTTP 200 with the updated integration and an optional safe error. Failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG uses product_offer/count.",
         "security": [
           {
             "cookieAuth": []
@@ -5020,7 +5336,7 @@
           "Integrations"
         ],
         "summary": "Save a marketplace account configuration",
-        "description": "Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with an email username and one selected market: RO, BG or HU. Every channel requires its API URL, verifies the connection and saves one integration with HTTP 201. Duplicate configurations return HTTP 409. Credentials are encrypted; the API URL and selected market are stored on the integration.",
+        "description": "Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with one selected market: RO, BG or HU. These channels save one integration with HTTP 201; duplicates return HTTP 409. Allegro must use POST /integrations/allegro/authorize; direct creation through this endpoint is rejected.",
         "security": [
           {
             "cookieAuth": []
@@ -5034,7 +5350,6 @@
             "schema": {
               "type": "string",
               "enum": [
-                "ALLEGRO",
                 "EMAG",
                 "ERLI",
                 "PRESTASHOP"
@@ -13008,6 +13323,191 @@
             "example": [
               "status",
               "components"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AllegroAuthorization": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "additionalProperties": {
+            "type": "boolean",
+            "example": false
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "baseUrl",
+              "clientId",
+              "clientSecret"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "baseUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 2048
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "API base URL supplied in the form and stored on the integration. HTTPS without credentials, query or fragment; normalized with a trailing slash."
+                  }
+                }
+              },
+              "clientId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 255
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "example": "^[a-zA-Z0-9-]+$"
+                  },
+                  "writeOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "clientSecret": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "example": 4096
+                  },
+                  "writeOnly": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "integrationId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uuid"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Optional existing Allegro integration to reconnect. Must authorize the same account."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AllegroAuthorizationResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "authorizationUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "authorizationUrl"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AllegroApplicationConfiguration": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "callbackUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uri"
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "callbackUrl"
             ],
             "items": {
               "type": "string"

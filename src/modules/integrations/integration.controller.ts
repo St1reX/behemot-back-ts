@@ -3,6 +3,7 @@ import { IntegrationService } from './integration.service';
 import { MarketplaceIntegrationService } from './marketplace/marketplaceIntegration.service';
 import { MarketplaceChannelParamsSchema } from './marketplace/schemas/marketplaceIntegration.schema';
 import { IdParamsSchema } from '../../shared/schema/commonSchema';
+import { AppError, ErrorNames } from '../../errors/errorHandler';
 
 export class IntegrationController {
     static async checkMarketplaceConnection(
@@ -41,6 +42,9 @@ export class IntegrationController {
     ) {
         try {
             const { channel } = MarketplaceChannelParamsSchema.parse(req.params);
+            if (channel === 'ALLEGRO') {
+                throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Połącz konto przez autoryzację Allegro.');
+            }
             res.setHeader('Cache-Control', 'no-store');
             const integration = await MarketplaceIntegrationService.createIntegration(channel, req.body);
             res.status(201).json(integration);

@@ -8,6 +8,8 @@ export interface MarketplaceAccountData {
 }
 
 export interface MarketplaceConnectionContext {
+    accessToken?: string;
+    accessTokenExpiresAt?: Date | null;
     apiKey?: string;
     username?: string | null;
     password?: string;
@@ -20,6 +22,9 @@ export interface PreparedMarketplaceConfiguration extends MarketplaceAccountData
     channel: MarketplaceIntegrationChannel;
     encryptedApiKey?: string;
     encryptedPassword?: string;
+    encryptedAccessToken?: string;
+    encryptedRefreshToken?: string;
+    accessTokenExpiresAt?: Date;
     market?: string;
     baseUrl: string;
     status: MarketplaceIntegrationStatus;

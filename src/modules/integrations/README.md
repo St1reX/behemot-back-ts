@@ -4,20 +4,21 @@ Ten dokument opisuje uzgodniony podział modułu. Przed dodaniem obsługi kolejn
 
 ## Stan obecny i docelowa struktura
 
-Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont ERLI, PrestaShop i eMAG oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie odczytu danych konta z API dostawcy.
+Obecnie istnieją wspólny odczyt integracji dla panelu, połączenie MySQL Bolmy, dodawanie kont Allegro, ERLI, PrestaShop i eMAG oraz usuwanie kont marketplace z ich ofertami. Asynchroniczny kontrakt `MarketplaceAdapter.prepareConfiguration()` obejmuje walidację tokenu, pobranie danych sklepu z API i przygotowanie szyfrowanej konfiguracji. Konto jest zapisywane ze statusem `CONNECTED` dopiero po sukcesie odczytu danych konta z API dostawcy.
 
-Ponowna weryfikacja i odświeżanie danych istniejących kont ERLI, PrestaShop i eMAG są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Dodawanie konta korzysta z tej samej metody, bez powielania odczytu i mapowania danych. Wymiana tokenu, OAuth i synchronizacja nie są jeszcze zaimplementowane. Folder Allegro w drzewie poniżej jest planem — dodaj go dopiero wraz z implementacją.
+Ponowna weryfikacja i odświeżanie danych istniejących kont Allegro, ERLI, PrestaShop i eMAG są dostępne przez wspólny kontrakt `MarketplaceAdapter.checkConnection(context)`. Adaptery współdzielą odczyt i mapowanie danych konta przy dodawaniu i sprawdzaniu połączenia. Allegro obsługuje OAuth2 Authorization Code bez automatycznego odświeżania tokenów; pozostałe kanały korzystają z własnych danych dostępowych. Synchronizacja ofert nie jest jeszcze zaimplementowana.
 
 ```text
 integrations/
-├── integration.routes.ts          # wspólny odczyt dla panelu
+├── integration.routes.ts          # wspólny odczyt i operacje marketplace
+├── allegro.routes.ts              # endpointy /integrations/allegro/*
 ├── integration.controller.ts
 ├── integration.service.ts         # zestawienie Bolmy i kont marketplace
 ├── docs/
 ├── bolma/                         # istniejące źródło katalogu MySQL
 └── marketplace/
     ├── marketplaceIntegration.service.ts
-    ├── marketplaceAdapter.factory.ts  # obecnie obsługuje ERLI, PrestaShop i eMAG
+    ├── marketplaceAdapter.factory.ts  # obsługuje Allegro, ERLI, PrestaShop i eMAG
     ├── repositories/
     │   └── marketplaceIntegrationRepository.ts
     ├── types/
@@ -27,7 +28,10 @@ integrations/
     └── adapters/
         ├── allegro/
         │   ├── allegro.adapter.ts
-        │   └── allegro.schema.ts     # walidacja konfiguracji dostawcy
+        │   ├── allegro.schema.ts     # walidacja konfiguracji dostawcy
+        │   ├── allegro.controller.ts
+        │   ├── allegro.apiClient.ts
+        │   └── allegroOAuth.service.ts
         ├── emag/
         │   ├── emag.adapter.ts
         │   ├── emag.apiClient.ts
@@ -62,13 +66,28 @@ integrations/
 
 ## Dodawanie kolejnego dostawcy
 
-1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację, korzystając z drugiej do sprawdzania połączenia. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Kontekst zawiera dane potrzebne przez poszczególne adaptery: opcjonalny odszyfrowany klucz API lub login i odszyfrowane hasło, środowisko oraz zapisany `baseUrl` i opcjonalny `market`. Każdy adapter waliduje swój wymagany zestaw danych. Przy wdrażaniu OAuth rozszerz typy o rzeczywiście wymagane dane.
+1. Dodaj implementację `MarketplaceAdapter` w `adapters/<channel>/<channel>.adapter.ts`. Kontrakt obejmuje `prepareConfiguration(input, integrationId)` oraz `checkConnection(context)`. Pierwsza metoda przygotowuje szyfrowaną konfigurację po weryfikacji danych konta. Przy OAuth wymienia kod na tokeny, a przy pozostałych kanałach korzysta bezpośrednio z checkConnection. `checkConnection` zwraca `Promise<MarketplaceAccountData>`: nazwę, tożsamość i zwalidowane ustawienia konta; nie zapisuje do bazy. Kontekst zawiera dane potrzebne przez poszczególne adaptery: opcjonalny odszyfrowany klucz API lub login i odszyfrowane hasło, środowisko oraz zapisany `baseUrl`, opcjonalny `market`, odszyfrowany `accessToken` i termin jego ważności `accessTokenExpiresAt`. Każdy adapter waliduje swój wymagany zestaw danych. Kontrakt przygotowanej konfiguracji obejmuje również zaszyfrowane access/refresh tokeny i termin ważności.
 2. Dodaj schemat Zod konfiguracji dostawcy i przygotowanie danych dostępowych po stronie serwera. Nie przekazuj zaszyfrowanych pól bezpośrednio do klienta API ani sekretów do panelu i logów.
 3. Rozszerz `marketplaceAdapter.factory.ts`: zwykłą funkcję wybierającą adapter według `MarketplaceIntegrationChannel`. Nieobsługiwane kanały jawnie odrzucają operację.
 4. Przy tworzeniu konta serwis generuje jego identyfikator przed szyfrowaniem. Przy kolejnych operacjach pobiera konto z bazy. Konfiguracja i dane dostępowe dotyczą konkretnego konta; nie przechowuj jednego globalnego adaptera z tokenem dla całego kanału.
 5. Dodaj endpoint operacji z odpowiednimi uprawnieniami i aktualizacją diagnostyki konta. Długie synchronizacje wykorzystają istniejący BullMQ; zadania przekazują identyfikatory, a aktualne konto jest pobierane przy wykonaniu.
 
 Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API ani wspólnej klasy bazowej bez rzeczywistej potrzeby. Kontrakt rozszerzamy wraz z kolejnymi wdrażanymi operacjami. Wspólny `IntegrationEnvironment` może później służyć również integracjom kurierskim, które otrzymają własny kontrakt.
+
+## Konfiguracja Allegro
+
+- Integracja realizuje [Authorization Code flow](https://developer.allegro.pl/tutorials/uwierzytelnianie-i-autoryzacja-zlq9e75GdIR). Formularz wymaga adresu API, `clientId` i `clientSecret` konkretnej integracji. Dane aplikacji nie pochodzą ze środowiska serwera. Adresy OAuth pozostają w `AllegroApiClient`; nie ma osobnego pliku `allegro.config.ts`. Tak samo działa ponowna autoryzacja: dane należy wprowadzić w formularzu, nie odsyłamy zapisanych sekretów do panelu.
+- Obsługujemy produkcję. Formularz wymaga bazowego adresu API, zapisywanego w istniejącym `baseUrl`. Frontend i backend korzystają ze wspólnej dla integracji walidacji adresu HTTPS, bez danych logowania, query i fragmentu. Nie ograniczamy adresu do jednego hosta. Endpointy OAuth są stałymi dostawcy pod `https://allegro.pl/auth/oauth/`, bez zmiennych URL Allegro w `.env`.
+- W Allegro Developer zarejestruj aplikację z dostępem do przeglądarki i Authorization Code. Wpisz dokładnie Redirect URI pokazywany w formularzu. `AllegroOAuthService.getCallbackUrl()` buduje go z publicznego `PROD_API_URL` (w development: `DEV_API_URL` i `DEV_API_PORT`) oraz `/integrations/allegro/callback`. Jeżeli reverse proxy wystawia backend pod prefiksem, np. `/api`, uwzględnij go w `PROD_API_URL`. Domyślny adres lokalny to `http://localhost:4000/integrations/allegro/callback`.
+- `GET /integrations/allegro/configuration` wymaga jednocześnie `INTEGRATION:CREATE` i `INTEGRATION:UPDATE` i zwraca wyłącznie Redirect URI. Nie ujawnia danych aplikacji ani tokenów.
+- `POST /integrations/allegro/authorize` przyjmuje `{ "baseUrl": "https://api.allegro.pl/", "clientId": "...", "clientSecret": "..." }` i wymaga jednocześnie `INTEGRATION:CREATE` i `INTEGRATION:UPDATE`. Opcjonalne `integrationId` rozpoczyna ponowną autoryzację istniejącej integracji. Zwraca `authorizationUrl`, pod który frontend przekierowuje przeglądarkę. Wspólny endpoint `POST /integrations/marketplace/ALLEGRO` jest odrzucany, aby nie omijać weryfikacji stanu OAuth.
+- Serwer generuje losowy `state`. Zaszyfrowany stan w istniejącym Redisie zawiera konfigurację, dane aplikacji, serwerowy Redirect URI, skrót sesji i ID użytkownika, wygasa po 10 minutach i jest konsumowany atomowo tylko raz. Do Allegro wysyłamy Client ID, `prompt=confirm` i wyłącznie `allegro:api:profile:read`, potrzebne do odczytu konta. Client Secret pozostaje na backendzie. Uprawnienia do ofert i zamówień dodaj dopiero wraz z ich obsługą.
+- `GET /integrations/allegro/callback` wymaga tej samej zalogowanej sesji. Middleware w `allegro.routes.ts` wymaga zalogowania oraz obu uprawnień: `INTEGRATION:CREATE` i `INTEGRATION:UPDATE`, tak samo jak dla pozostałych endpointów Allegro. Brak sesji zwraca HTTP 401, a brak któregokolwiek uprawnienia HTTP 403, przed wykonaniem callbacku. Obsługuje odmowę zgody, błędny/wygasły stan, powtórzenie callbacku, duplikat i błędy dostawcy. Po operacji zwraca `303` do listy integracji z bezpiecznym komunikatem. `trafficLogger` działa bez specjalnych wyjątków dla Allegro.
+- Kod wymieniamy natychmiast na tokeny (kod Allegro jest ważny tylko 10 sekund). Token endpoint otrzymuje POST z formularzem URL-encoded i nagłówkiem Basic z Client ID oraz Client Secret podanymi w formularzu. Żądanie ma limit 10 sekund i nie śledzi przekierowań. Surowe błędy Allegro nie trafiają do panelu ani logów.
+- Tożsamość sprzedawcy pochodzi z [GET /me](https://developer.allegro.pl/documentation/#operation/meGET): `id` zapisujemy w `externalAccountId`, a `login` w `name` i `externalUsername`. Jedno konto jest jedną integracją. Tworzenie korzysta ze wspólnego serwisu, audytu i kontroli duplikatów. Ponowne połączenie wymaga tego samego ID sprzedawcy, zachowuje lokalne ID integracji, oferty i `isEnabled`.
+- Client ID zapisujemy w `encryptedApiKey`, a Client Secret w `encryptedPassword`, przez istniejące AES-GCM z kontekstami `marketplace:<id>:encryptedApiKey` i `marketplace:<id>:encryptedPassword`. Tokeny są szyfrowane analogicznie w `encryptedAccessToken` i `encryptedRefreshToken`. Termin ważności jest liczony z `expires_in`. Odpowiedzi panelu i audyt nie zawierają sekretów ani szyfrogramów.
+- Sprawdzanie połączenia korzysta ze wspólnego odczytu i odszyfrowania tokenu oraz pojedynczego `GET /me`. Brak, wygaśnięcie lub odrzucenie tokenu wymaga przycisku „Połącz ponownie”. Automatyczne odświeżanie, ponawianie żądania, serwis tokenów i jego repozytorium zostały usunięte. Refresh token pozostaje zapisany, ale nie jest używany do odnawiania dostępu.
+- Przycisk sprawdzania połączenia zachowuje wspólną diagnostykę `CONNECTED`/`ERROR`. Usuwanie korzysta ze wspólnej transakcji i usuwa lokalne dane aplikacji oraz tokeny; nie odwołuje zdalnie zgody Allegro. Brak zmian schematu Prisma i migracji.
 
 ## Konfiguracja ERLI
 
@@ -120,7 +139,7 @@ Adapter ERLI realizuje `checkConnection` przez ten sam `GET /me` co przy dodawan
 
 Nieudane sprawdzenie zapisuje `ERROR`, czas sprawdzenia i bezpieczny komunikat błędu w `lastErrorMessage` oraz `lastErrorAt`. Zachowuje wcześniejsze dane sklepu. Zakończona próba zwraca HTTP `200` z `{ integration, error }`; `error` jest `null` przy sukcesie. Błędy samego żądania, brak rekordu i nieobsługiwany kanał zwracają odpowiednie błędy HTTP. Zapis wyniku zawsze wymaga `deletedAt: null`, więc sprawdzenie nie przywróci konta usuniętego w trakcie żądania.
 
-Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach kont ERLI, PrestaShop i eMAG dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
+Przycisk „Sprawdź połączenie i odśwież dane” jest dostępny w szczegółach kont Allegro, ERLI, PrestaShop i eMAG dla użytkownika z uprawnieniem aktualizacji. Wynik aktualizuje otwarty modal i pamięć zapytania listy integracji. Błąd połączenia pokazuje komunikat i zapisany status błędu. Bolma ma osobny mechanizm diagnostyczny i nie korzysta z tego endpointu.
 
 ## Usuwanie integracji
 

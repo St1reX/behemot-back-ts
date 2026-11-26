@@ -16,7 +16,7 @@ export class MarketplaceIntegrationService {
             throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
         }
 
-        const { encryptedApiKey, encryptedPassword, ...integrationBefore } = storedIntegration;
+        const { encryptedApiKey, encryptedPassword, encryptedAccessToken, ...integrationBefore } = storedIntegration;
         const adapter = createMarketplaceAdapter(storedIntegration.channel);
         let account: MarketplaceAccountData | null = null;
         let errorMessage: string | null = null;
@@ -24,7 +24,10 @@ export class MarketplaceIntegrationService {
         try {
             const apiKey = encryptedApiKey ? decryptSecret(encryptedApiKey, `marketplace:${integrationId}:encryptedApiKey`) : undefined;
             const password = encryptedPassword ? decryptSecret(encryptedPassword, `marketplace:${integrationId}:encryptedPassword`) : undefined;
+            const accessToken = encryptedAccessToken ? decryptSecret(encryptedAccessToken, `marketplace:${integrationId}:encryptedAccessToken`) : undefined;
             account = await adapter.checkConnection({
+                accessToken,
+                accessTokenExpiresAt: storedIntegration.accessTokenExpiresAt,
                 apiKey,
                 password,
                 username: storedIntegration.externalUsername,
@@ -88,6 +91,29 @@ export class MarketplaceIntegrationService {
             dataAfter: integration,
         });
 
+        return integration;
+    }
+
+    static async reconnectIntegration(integrationId: string, channel: MarketplaceIntegrationChannel, input: unknown) {
+        const previous = await MarketplaceIntegrationRepository.findById(integrationId);
+        if (!previous || previous.channel !== channel) {
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
+        }
+
+        const configuration = await createMarketplaceAdapter(channel).prepareConfiguration(input, integrationId);
+        if (configuration.externalAccountId !== previous.externalAccountId) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Zaloguj się do tego samego konta, które jest przypisane do integracji.');
+        }
+        const integration = await MarketplaceIntegrationRepository.updateConfiguration(integrationId, configuration);
+        await createAuditLog({
+            entityName: ENTITIES.INTEGRATION,
+            entityId: integrationId,
+            action: ACTIONS.UPDATE,
+            operationStatus: OperationStatus.SUCCESS,
+            dataBefore: previous,
+            dataAfter: integration,
+            comment: 'Ponownie autoryzowano integrację.',
+        });
         return integration;
     }
 
