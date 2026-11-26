@@ -9,6 +9,7 @@ const envSchema = z.object({
     REDIS_URL: z.string().min(1),
     BULLMQ_REDIS_URL: z.string().min(1),
     SESSION_SECRET: z.string().min(1),
+    INTEGRATION_ENCRYPTION_KEY: z.string().regex(/^[a-f0-9]{64}$/i, 'INTEGRATION_ENCRYPTION_KEY must contain 64 hexadecimal characters (32 random bytes).'),
     COOKIE_DOMAIN: z.string().min(1),
     PROD_API_URL: z.string().url(),
     PROD_API_PORT: z.coerce.number().int().positive().max(65535),

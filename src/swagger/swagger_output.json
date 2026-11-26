@@ -53,7 +53,7 @@
     },
     {
       "name": "Integrations",
-      "description": "Read-only integration overview. Credentials and settings are never returned."
+      "description": "Integration overview and configuration. Credentials and settings are never returned."
     },
     {
       "name": "Producers",
@@ -4890,6 +4890,142 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BolmaStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/marketplace/{channel}": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Save a marketplace account configuration",
+        "description": "Requires INTEGRATION:CREATE. Currently supports ERLI only. Encrypts the token and creates a PENDING account without calling the provider API.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "channel",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALLEGRO",
+                "EMAG",
+                "ERLI",
+                "PRESTASHOP"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8192,
+                    "pattern": "^\\S+$",
+                    "writeOnly": true,
+                    "description": "Raw ERLI API key, without the Bearer prefix."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Configuration saved; connection not checked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketplaceIntegration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Configuration for this channel is not implemented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing INTEGRATION:CREATE privilege.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid channel or configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -12621,6 +12757,267 @@
           }
         }
       },
+      "MarketplaceIntegration": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "uuid"
+                  }
+                }
+              },
+              "name": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "channel": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "ALLEGRO",
+                      "EMAG",
+                      "ERLI",
+                      "PRESTASHOP"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "externalAccountId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "externalUsername": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "environment": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PRODUCTION",
+                      "SANDBOX"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "market": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "isEnabled": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  }
+                }
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PENDING",
+                      "CONNECTED",
+                      "ERROR"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "accessTokenExpiresAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "lastConnectionCheckAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "lastSuccessfulSyncAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "lastErrorAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  },
+                  "nullable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "id",
+              "name",
+              "channel",
+              "externalAccountId",
+              "externalUsername",
+              "environment",
+              "market",
+              "isEnabled",
+              "status",
+              "accessTokenExpiresAt",
+              "lastConnectionCheckAt",
+              "lastSuccessfulSyncAt",
+              "lastErrorAt",
+              "createdAt",
+              "updatedAt"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "IntegrationsResponse": {
         "type": "object",
         "properties": {
@@ -12733,265 +13130,7 @@
                     "example": "array"
                   },
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "example": "object"
-                      },
-                      "properties": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "uuid"
-                              }
-                            }
-                          },
-                          "name": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              }
-                            }
-                          },
-                          "channel": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "enum": {
-                                "type": "array",
-                                "example": [
-                                  "ALLEGRO",
-                                  "EMAG",
-                                  "ERLI",
-                                  "PRESTASHOP"
-                                ],
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          },
-                          "externalAccountId": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "externalUsername": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "environment": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "enum": {
-                                "type": "array",
-                                "example": [
-                                  "PRODUCTION",
-                                  "SANDBOX"
-                                ],
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          },
-                          "market": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "isEnabled": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "boolean"
-                              }
-                            }
-                          },
-                          "status": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "enum": {
-                                "type": "array",
-                                "example": [
-                                  "PENDING",
-                                  "CONNECTED",
-                                  "ERROR"
-                                ],
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          },
-                          "accessTokenExpiresAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "lastConnectionCheckAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "lastSuccessfulSyncAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "lastErrorAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              },
-                              "nullable": {
-                                "type": "boolean",
-                                "example": true
-                              }
-                            }
-                          },
-                          "createdAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              }
-                            }
-                          },
-                          "updatedAt": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "example": "string"
-                              },
-                              "format": {
-                                "type": "string",
-                                "example": "date-time"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "required": {
-                        "type": "array",
-                        "example": [
-                          "id",
-                          "name",
-                          "channel",
-                          "externalAccountId",
-                          "externalUsername",
-                          "environment",
-                          "market",
-                          "isEnabled",
-                          "status",
-                          "accessTokenExpiresAt",
-                          "lastConnectionCheckAt",
-                          "lastSuccessfulSyncAt",
-                          "lastErrorAt",
-                          "createdAt",
-                          "updatedAt"
-                        ],
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    }
+                    "$ref": "#/components/schemas/MarketplaceIntegration"
                   }
                 }
               }

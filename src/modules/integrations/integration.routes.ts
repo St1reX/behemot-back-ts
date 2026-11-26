@@ -8,5 +8,6 @@ import { IntegrationController } from './integration.controller';
 const router = Router();
 
 router.get('/', requireAuth, requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.READ}`), IntegrationController.getIntegrations);
+router.post('/marketplace/:channel', requireAuth, requirePrivilege(`${ENTITIES.INTEGRATION}:${ACTIONS.CREATE}`), IntegrationController.createMarketplaceIntegration);
 
 export default router;

@@ -1,9 +1,11 @@
-export interface ConnectionCheckResult {
-    externalAccountId: string | null;
-    externalUsername: string | null;
+import type { MarketplaceIntegrationChannel } from '@prisma/client';
+
+export interface PreparedMarketplaceConfiguration {
+    name: string;
+    channel: MarketplaceIntegrationChannel;
+    encryptedApiKey: string;
 }
 
-// A successful check returns account identification; a failed check throws an error.
 export interface MarketplaceAdapter {
-    checkConnection(): Promise<ConnectionCheckResult>;
+    prepareConfiguration(input: unknown, integrationId: string): PreparedMarketplaceConfiguration;
 }

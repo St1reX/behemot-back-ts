@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../config/database';
+import { PreparedMarketplaceConfiguration } from '../types/marketplaceAdapter.types';
 
 // Explicit projection: credentials and free-form settings must never reach the panel.
 const integrationSelect = {
@@ -21,6 +22,13 @@ const integrationSelect = {
 } satisfies Prisma.MarketplaceIntegrationSelect;
 
 export class MarketplaceIntegrationRepository {
+    static create(id: string, configuration: PreparedMarketplaceConfiguration) {
+        return prisma.marketplaceIntegration.create({
+            data: { id, ...configuration },
+            select: integrationSelect,
+        });
+    }
+
     static findAll() {
         return prisma.marketplaceIntegration.findMany({
             where: { deletedAt: null },
