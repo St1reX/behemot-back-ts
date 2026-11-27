@@ -1635,20 +1635,19 @@
             ]
         },
         {
-            "name": "integrations/bolma",
+            "name": "bolma",
             "item": [
                 {
-                    "name": "GET /integrations/bolma/status",
+                    "name": "GET /bolma/status",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/integrations/bolma/status",
+                            "raw": "{{baseUrl}}/bolma/status",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
-                                "integrations",
                                 "bolma",
                                 "status"
                             ],

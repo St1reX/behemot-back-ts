@@ -24,6 +24,10 @@
       "description": "Authentication and account verification."
     },
     {
+      "name": "Bolma",
+      "description": "Internal product catalog integration."
+    },
+    {
       "name": "Car brands",
       "description": "CAR_BRAND management."
     },
@@ -48,12 +52,8 @@
       "description": "Service health checks."
     },
     {
-      "name": "Bolma",
-      "description": "Internal product catalog integration."
-    },
-    {
-      "name": "Integrations",
-      "description": "Integration overview and configuration. Credentials and settings are never returned."
+      "name": "MarketplaceIntegrations",
+      "description": "Marketplace accounts and configuration. Credentials and settings are never returned."
     },
     {
       "name": "Producers",
@@ -1076,6 +1076,177 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bolma/configuration": {
+      "get": {
+        "tags": [
+          "Bolma"
+        ],
+        "summary": "Read the Bolma catalog configuration without credentials",
+        "description": "Requires INTEGRATION:READ. Reads environment configuration without checking the database connection.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe catalog configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BolmaConfiguration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing INTEGRATION:READ privilege.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bolma/status": {
+      "get": {
+        "tags": [
+          "Bolma"
+        ],
+        "summary": "Check the Bolma catalog database connection",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Database is available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BolmaStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BolmaStatusResponse"
                 }
               }
             }
@@ -4812,95 +4983,10 @@
         }
       }
     },
-    "/integrations/bolma/status": {
+    "/marketplace-integrations/allegro/configuration": {
       "get": {
         "tags": [
-          "Bolma"
-        ],
-        "summary": "Check the Bolma catalog database connection",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Database is available.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BolmaStatusResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Malformed JSON body.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "User not authenticated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Request body exceeds the size limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many requests.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Database is unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BolmaStatusResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/integrations/allegro/configuration": {
-      "get": {
-        "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Read Allegro redirect URI",
         "description": "Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE. Returns only the redirect URI derived from the backend public URL. Application credentials are entered in the authorization form and never returned.",
@@ -4983,10 +5069,10 @@
         }
       }
     },
-    "/integrations/allegro/authorize": {
+    "/marketplace-integrations/allegro/authorize": {
       "post": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Start Allegro OAuth2 Authorization Code",
         "description": "Requires both INTEGRATION:CREATE and INTEGRATION:UPDATE, enforced by route middleware. Requires API base URL, Client ID and Client Secret from the form. Returns an Allegro authorization URL. Credentials and the server-generated redirect URI are held in encrypted, session-bound state for up to 10 minutes, consumed once, then credentials are stored encrypted on the verified integration. Requests only allegro:api:profile:read. No application credentials are read from the environment.",
@@ -5099,10 +5185,10 @@
         }
       }
     },
-    "/integrations/allegro/callback": {
+    "/marketplace-integrations/allegro/callback": {
       "get": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Complete Allegro OAuth2 and return to the integrations page",
         "description": "Browser callback registered in Allegro Developer. Route middleware requires authentication and both INTEGRATION:CREATE and INTEGRATION:UPDATE. Requires the initiating session and consumes state before exchanging code using Basic authentication with submitted application credentials and the redirect URI saved at authorization start. Verifies identity through GET /me, then uses the shared integration service and duplicate checks. Stores encrypted application credentials, access/refresh tokens and expiry. Reconnection retains the integration ID and requires the same Allegro account. Handles cancellation and errors through safe return messages.",
@@ -5213,10 +5299,10 @@
         }
       }
     },
-    "/integrations/marketplace/{id}/check-status": {
+    "/marketplace-integrations/{id}/check-status": {
       "post": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Check connection and refresh account data",
         "description": "Requires INTEGRATION:UPDATE. Supports Allegro, ERLI, PrestaShop and eMAG. Uses the stored API URL. Allegro reads current credentials by integration ID, refreshes missing access tokens or tokens expiring within 60 seconds and persists both rotated tokens with their expiry. A provider 401 triggers token refresh and exactly one retry; a token refreshed concurrently is reused. Refreshes are serialized by a database row lock across API/worker processes, reconnection and deletion. Invalid refresh tokens require OAuth reconnection; network errors do not clear credentials. A completed check returns HTTP 200 with the updated integration and an optional safe error. Failures persist ERROR diagnostics and retain previous account data. Does not change isEnabled. PrestaShop selects the first returned shop. eMAG uses product_offer/count.",
@@ -5330,13 +5416,13 @@
         }
       }
     },
-    "/integrations/marketplace/{channel}": {
+    "/marketplace-integrations/{channel}": {
       "post": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Save a marketplace account configuration",
-        "description": "Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with one selected market: RO, BG or HU. These channels save one integration with HTTP 201; duplicates return HTTP 409. Allegro must use POST /integrations/allegro/authorize; direct creation through this endpoint is rejected.",
+        "description": "Requires INTEGRATION:CREATE. ERLI accepts {baseUrl, token}; PRESTASHOP accepts {baseUrl, apiKey}; EMAG accepts {baseUrl, market, username, password}, with one selected market: RO, BG or HU. These channels save one integration with HTTP 201; duplicates return HTTP 409. Allegro must use POST /marketplace-integrations/allegro/authorize; direct creation through this endpoint is rejected.",
         "security": [
           {
             "cookieAuth": []
@@ -5481,10 +5567,10 @@
         }
       }
     },
-    "/integrations/marketplace/{id}": {
+    "/marketplace-integrations/{id}": {
       "delete": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
         "summary": "Delete a marketplace integration and its local external listings",
         "description": "Requires INTEGRATION:DELETE. Soft-deletes the integration, all related external listings and listing fitment links in one transaction; disables the account and clears stored credentials. Does not call the provider API.",
@@ -5606,12 +5692,12 @@
         }
       }
     },
-    "/integrations": {
+    "/marketplace-integrations": {
       "get": {
         "tags": [
-          "Integrations"
+          "MarketplaceIntegrations"
         ],
-        "summary": "List the Bolma data source and active marketplace integration records",
+        "summary": "List active marketplace integration records",
         "description": "Requires INTEGRATION:READ. Excludes soft-deleted records. Does not connect to external services.",
         "security": [
           {
@@ -5624,7 +5710,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IntegrationsResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MarketplaceIntegration"
+                  }
                 }
               }
             }
@@ -12304,6 +12393,185 @@
           }
         }
       },
+      "BolmaConfiguration": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "bolma"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "name": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "engine": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "MySQL"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isConfigured": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Configuration exists; this does not verify connectivity."
+                  }
+                }
+              },
+              "sslEnabled": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "id",
+              "name",
+              "engine",
+              "isConfigured",
+              "sslEnabled"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BolmaStatusResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "ok",
+                      "error"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "components": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "object"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "database": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "example": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "example": [
+                              "ok",
+                              "error"
+                            ],
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "example": [
+                      "database"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": {
+            "type": "array",
+            "example": [
+              "status",
+              "components"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CarBrand": {
         "type": "object",
         "properties": {
@@ -13245,91 +13513,6 @@
           }
         }
       },
-      "BolmaStatusResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "status": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "enum": {
-                    "type": "array",
-                    "example": [
-                      "ok",
-                      "error"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "components": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "database": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "enum": {
-                            "type": "array",
-                            "example": [
-                              "ok",
-                              "error"
-                            ],
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "database"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "required": {
-            "type": "array",
-            "example": [
-              "status",
-              "components"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "AllegroAuthorization": {
         "type": "object",
         "properties": {
@@ -14084,136 +14267,6 @@
             "example": [
               "integration",
               "error"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "IntegrationsResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "bolma": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "object"
-                  },
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "enum": {
-                            "type": "array",
-                            "example": [
-                              "bolma"
-                            ],
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      },
-                      "name": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          }
-                        }
-                      },
-                      "engine": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "string"
-                          },
-                          "enum": {
-                            "type": "array",
-                            "example": [
-                              "MySQL"
-                            ],
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      },
-                      "isConfigured": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "boolean"
-                          },
-                          "description": {
-                            "type": "string",
-                            "example": "Configuration exists; this does not verify connectivity."
-                          }
-                        }
-                      },
-                      "sslEnabled": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "example": "boolean"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": {
-                    "type": "array",
-                    "example": [
-                      "id",
-                      "name",
-                      "engine",
-                      "isConfigured",
-                      "sslEnabled"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "marketplaces": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "array"
-                  },
-                  "items": {
-                    "$ref": "#/components/schemas/MarketplaceIntegration"
-                  }
-                }
-              }
-            }
-          },
-          "required": {
-            "type": "array",
-            "example": [
-              "bolma",
-              "marketplaces"
             ],
             "items": {
               "type": "string"

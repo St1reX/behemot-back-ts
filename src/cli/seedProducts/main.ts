@@ -51,7 +51,7 @@ async function main(): Promise<void> {
         if (!interrupted) {
             const { prisma } = await import('../../config/database');
             disconnectDatabase = () => prisma.$disconnect();
-            const { closeBolmaDatabasePool } = await import('../../modules/integrations/bolma/config/database');
+            const { closeBolmaDatabasePool } = await import('../../modules/bolma/config/database');
             disconnectBolma = closeBolmaDatabasePool;
             const { runBolmaProductImport: runBolma } = await import('../seedBolmaProduct/runBolmaProductImport');
             const activeReport = bolmaReport;

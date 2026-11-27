@@ -34,16 +34,6 @@ src/
 |   `-- audit/
 |       `-- auditLogger.ts
 |
-|-- integrations/
-|   |-- allegro/
-|   |   |-- allegro.service.ts
-|   |   |-- allegro.dto.ts
-|   |   `-- allegro.mapper.ts
-|   `-- presta/
-|       |-- presta.service.ts
-|       |-- presta.dto.ts
-|       `-- presta.mapper.ts
-|
 |-- middlewares/
 |   |-- auth/
 |   |   |-- requireAuth.ts
@@ -64,6 +54,8 @@ src/
 |       `-- rateLimiter.ts
 |
 |-- modules/
+|   |-- bolma/
+|   |-- marketplaceIntegrations/
 |   |-- health/
 |   |   `-- routes.ts
 |   |-- product/

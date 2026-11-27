@@ -7,7 +7,7 @@ import { ENTITIES } from '../../shared/constants/entities';
 import { PRODUCT_CONTENT_VERSIONS } from '../../modules/product/constants/productVersions';
 import { ImportProductSchema } from '../../modules/product/schemas/product.schema';
 import { validateProductFitments } from '../../modules/productFitment/validateProductFitments';
-import { bolmaDatabasePool } from '../../modules/integrations/bolma/config/database';
+import { bolmaDatabasePool } from '../../modules/bolma/config/database';
 import { BOLMA_PRODUCT_IMPORT, BOLMA_IMPORT_STATUSES } from './bolmaProductImport.constants';
 import { BolmaProductRow } from './bolmaProductImport.parser';
 import { BolmaImportDictionaries, mapBolmaProduct } from './bolmaProductImport.mapper';
