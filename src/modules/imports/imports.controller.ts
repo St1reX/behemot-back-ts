@@ -1,12 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import { basename } from 'node:path';
 import { ImportsService } from './imports.service';
 import { BolmaImportRequestSchema } from './schemas/imports.schema';
-
-function downloadReport(res: Response, next: NextFunction, path: string) {
-    res.setHeader('Cache-Control', 'no-store');
-    res.download(path, basename(path), (error) => { if (error && !res.headersSent) next(error); });
-}
 
 export class ImportsController {
     static async getBolmaStatus(_req: Request, res: Response, next: NextFunction) {
@@ -32,7 +26,12 @@ export class ImportsController {
         try {
             BolmaImportRequestSchema.parse(req.body);
             const path = await ImportsService.importBolmaProducts(req.user!.id, () => disconnected);
-            if (!disconnected) downloadReport(res, next, path);
+            if (!disconnected) {
+                res.setHeader('Cache-Control', 'no-store');
+                res.download(path, (error) => {
+                    if (error && !res.headersSent) next(error);
+                });
+            }
         } catch (error) {
             if (!disconnected) next(error);
         } finally {
@@ -43,7 +42,10 @@ export class ImportsController {
     static async downloadLatestBolmaReport(req: Request, res: Response, next: NextFunction) {
         try {
             const path = await ImportsService.getLatestBolmaReport();
-            downloadReport(res, next, path);
+            res.setHeader('Cache-Control', 'no-store');
+            res.download(path, (error) => {
+                if (error && !res.headersSent) next(error);
+            });
         } catch (error) {
             next(error);
         }

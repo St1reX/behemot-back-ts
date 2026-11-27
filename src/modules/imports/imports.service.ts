@@ -1,7 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { Dirent } from 'node:fs';
-import { readdir, stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { Prisma } from '@prisma/client';
 import { env } from '../../config/env';
 import { redisClient } from '../../config/redis';
@@ -10,11 +7,11 @@ import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { BolmaImportRepository } from './repositories/bolmaImportRepository';
 import { parseBolmaProductRow } from './bolmaProduct.mapper';
 import { BolmaImportReport } from './bolmaImport.report';
+import { findLatestBolmaReportPath, getBolmaReportPath } from './uploads/imports.upload';
 import type { BolmaConfiguration, BolmaImportResult } from './types/imports.types';
 
 const IMPORT_LOCK_KEY = 'behemot:imports:bolma:products';
 const IMPORT_LOCK_TTL_MS = 120_000;
-const BOLMA_REPORT_DIRECTORY = resolve(env.UPLOADS_ROOT_PATH, 'imports', 'bolma');
 
 export class ImportsService {
     static async getBolmaStatus() {
@@ -36,24 +33,9 @@ export class ImportsService {
     }
 
     static async getLatestBolmaReport() {
-        let files: Dirent[];
-        try {
-            files = await readdir(BOLMA_REPORT_DIRECTORY, { withFileTypes: true });
-        } catch (error) {
-            if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie ma jeszcze raportu importu Bolmy.');
-        }
-        let latest: { path: string; modifiedAt: number } | undefined;
-        for (const file of files) {
-            if (!file.isFile() || !file.name.toLowerCase().endsWith('.xlsx')) continue;
-            const path = resolve(BOLMA_REPORT_DIRECTORY, file.name);
-            const { mtimeMs } = await stat(path);
-            if (!latest || mtimeMs > latest.modifiedAt || (mtimeMs === latest.modifiedAt && path > latest.path)) {
-                latest = { path, modifiedAt: mtimeMs };
-            }
-        }
-        if (!latest) throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie ma jeszcze raportu importu Bolmy.');
-        return latest.path;
+        const path = await findLatestBolmaReportPath();
+        if (!path) throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie ma jeszcze raportu importu Bolmy.');
+        return path;
     }
 
     static async importBolmaProducts(userId: string, isDisconnected: () => boolean) {
@@ -76,11 +58,7 @@ export class ImportsService {
         const heartbeat = setInterval(() => { void renewLock(); }, 30_000);
         heartbeat.unref();
         try {
-            const timestamp = new Intl.DateTimeFormat('sv-SE', {
-                timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-            }).format(new Date()).replace(' ', '_').replace(/:/g, '-');
-            const path = resolve(BOLMA_REPORT_DIRECTORY, `raport_import_bolma_${timestamp}_${token}.xlsx`);
+            const path = getBolmaReportPath(token);
             const report = await BolmaImportReport.create(path);
             let completed = false;
             let fatalError: string | undefined;

@@ -3,7 +3,7 @@
 Moduł `imports` zastępuje `bolma` oraz importery produktów CLI. Obecnie obsługuje wyłącznie Bolmę. Importer BaseLinkera i wspólny seeder produktów zostały usunięte.
 
 `imports.routes.ts` → `imports.controller.ts` → `imports.service.ts` → `repositories/bolmaImportRepository.ts`.
-Walidacja i mapowanie danych Bolmy są razem w `bolmaProduct.mapper.ts`, a trwały dziennik i raport XLSX w `bolmaImport.report.ts`. Konfiguracja MySQL pozostaje w `config/database.ts`. Moduł nie implementuje adaptera marketplace.
+Walidacja i mapowanie danych Bolmy są razem w `bolmaProduct.mapper.ts`, a trwały dziennik i raport XLSX w `bolmaImport.report.ts`. Katalog raportów, nazewnictwo i wyszukiwanie najnowszego pliku są w `uploads/imports.upload.ts`, z użyciem wspólnego `getUploadDirectory`. Kontroler odpowiada za wysłanie pliku przez `res.download`. Konfiguracja MySQL pozostaje w `config/database.ts`. Moduł nie implementuje adaptera marketplace.
 
 ## API i uprawnienia
 
@@ -31,3 +31,5 @@ XLSX zawiera dokładnie trzy arkusze: INFO (utworzone, uzupełnione i istniejąc
 Raport oraz dziennik JSONL są zapisywane w `UPLOADS_ROOT_PATH/imports/bolma/`. Dziennik jest opróżniany na dysk po każdym rekordzie. Gotowy XLSX trafia na docelową ścieżkę dopiero po zamknięciu całego pliku. Nie jest publicznym uploadem. Aplikacja nie usuwa żadnych raportów ani dzienników. Starsze pliki są dostępne administracyjnie przez FTP; panel udostępnia tylko najnowszy gotowy XLSX. Dzienniki JSONL, pliki .part i podkatalogi nie biorą udziału w wyborze najnowszego raportu. Należy uwzględnić pliki w polityce miejsca i kopii zapasowych. Instancje API muszą współdzielić ten katalog przy pracy na wielu serwerach.
 
 Modal blokuje zamknięcie i nawigację podczas żądania. Frontend i odpowiedź serwera nie mają limitu czasu importu; reverse proxy/load balancer musi dopuszczać odpowiednio długie żądania. Utrata połączenia przerywa przetwarzanie przed kolejnym rekordem i finalizuje raport dotychczasowych zapisów. Przycisk w modalu pobiera najnowszy gotowy raport Bolmy niezależnie od przeglądarki i autora importu. Podczas trwającego importu może to być raport poprzedniego przebiegu. Przy twardym zatrzymaniu procesu dziennik może pozostać bez podsumowania i bez XLSX; wymaga wtedy sprawdzenia administracyjnego. Nie należy w takiej sytuacji zakładać, że nie dokonano zapisów.
+
+Frontend korzysta z `api/files/download.ts`, tak jak wzorzec Mondaya: `ImportsApiClient` zwraca `DownloadedFile` (blob i nazwę z Content-Disposition), a komponent wywołuje `saveDownloadedFile`. Klient API nie wykonuje operacji na DOM.

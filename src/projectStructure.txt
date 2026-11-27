@@ -60,6 +60,7 @@ src/
 |   |   |-- repositories/bolmaImportRepository.ts
 |   |   |-- schemas/imports.schema.ts
 |   |   |-- types/imports.types.ts
+|   |   |-- uploads/imports.upload.ts
 |   |   |-- bolmaProduct.mapper.ts
 |   |   |-- bolmaImport.report.ts
 |   |   |-- imports.controller.ts
