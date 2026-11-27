@@ -2,6 +2,7 @@ import { AppError, ErrorNames } from '../../../../errors/errorHandler';
 import { decryptSecret, encryptSecret } from '../../../../shared/utils/secretEncryption';
 import { MarketplaceAccountData, MarketplaceAdapter, MarketplaceConnectionContext, PreparedMarketplaceConfiguration } from '../../types/marketplaceAdapter.types';
 import { AllegroApiClient } from './allegro.apiClient';
+import { AllegroOAuthApiClient } from './oauth/allegroOAuth.apiClient';
 import { AllegroConfigurationSchema } from './allegro.schema';
 import { ApiBaseUrlSchema } from '../../schemas/apiBaseUrl.schema';
 import { MarketplaceIntegrationRepository } from '../../repositories/marketplaceIntegrationRepository';
@@ -10,7 +11,7 @@ export class AllegroAdapter implements MarketplaceAdapter {
     async prepareConfiguration(input: unknown, integrationId: string): Promise<PreparedMarketplaceConfiguration> {
         const { baseUrl, code, clientId, clientSecret, redirectUri } = AllegroConfigurationSchema.parse(input);
         const issuedAt = Date.now();
-        const tokens = await AllegroApiClient.exchangeCode(code, clientId, clientSecret, redirectUri);
+        const tokens = await AllegroOAuthApiClient.exchangeCode(code, clientId, clientSecret, redirectUri);
         const user = await AllegroApiClient.getUser(baseUrl, tokens.access_token);
         return {
             name: user.login,
@@ -85,7 +86,7 @@ export class AllegroAdapter implements MarketplaceAdapter {
             const clientSecret = decryptSecret(integration.encryptedPassword, `marketplace:${integrationId}:encryptedPassword`);
             const refreshToken = decryptSecret(integration.encryptedRefreshToken, `marketplace:${integrationId}:encryptedRefreshToken`);
             const issuedAt = Date.now();
-            const tokens = await AllegroApiClient.refreshTokens(refreshToken, clientId, clientSecret);
+            const tokens = await AllegroOAuthApiClient.refreshTokens(refreshToken, clientId, clientSecret);
             await MarketplaceIntegrationRepository.updateTokens(integrationId, {
                 encryptedAccessToken: encryptSecret(tokens.access_token, `marketplace:${integrationId}:encryptedAccessToken`),
                 encryptedRefreshToken: encryptSecret(tokens.refresh_token, `marketplace:${integrationId}:encryptedRefreshToken`),

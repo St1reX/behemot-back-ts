@@ -5,7 +5,7 @@ import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
 import { decryptSecret, encryptSecret } from '../../../../../shared/utils/secretEncryption';
 import { MarketplaceIntegrationService } from '../../../marketplaceIntegration.service';
 import { MarketplaceIntegrationRepository } from '../../../repositories/marketplaceIntegrationRepository';
-import { AllegroApiClient } from '../allegro.apiClient';
+import { AllegroOAuthApiClient } from './allegroOAuth.apiClient';
 import { AllegroAuthorizationSchema, AllegroOAuthStateSchema } from '../allegro.schema';
 
 function sessionHash(sessionId: string) {
@@ -36,7 +36,7 @@ export class AllegroOAuthService {
         const payload = JSON.stringify({ ...configuration, redirectUri, sessionHash: sessionHash(sessionId), userId });
         await redisClient.set(key, encryptSecret(payload, key), 'EX', 600);
 
-        return { authorizationUrl: AllegroApiClient.getAuthorizationUrl(configuration.clientId, state, redirectUri) };
+        return { authorizationUrl: AllegroOAuthApiClient.getAuthorizationUrl(configuration.clientId, state, redirectUri) };
     }
 
     static async consumeState(state: string, sessionId: string, userId: string) {
