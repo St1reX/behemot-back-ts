@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { apiPort, apiUrl, isDevelopment } from '../../../../config/env';
-import { redisClient } from '../../../../config/redis';
-import { AppError, ErrorNames } from '../../../../errors/errorHandler';
-import { decryptSecret, encryptSecret } from '../../../../shared/utils/secretEncryption';
-import { MarketplaceIntegrationService } from '../../marketplaceIntegration.service';
-import { MarketplaceIntegrationRepository } from '../../repositories/marketplaceIntegrationRepository';
-import { AllegroApiClient } from './allegro.apiClient';
-import { AllegroAuthorizationSchema, AllegroOAuthStateSchema } from './allegro.schema';
+import { apiPort, apiUrl, isDevelopment } from '../../../../../config/env';
+import { redisClient } from '../../../../../config/redis';
+import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
+import { decryptSecret, encryptSecret } from '../../../../../shared/utils/secretEncryption';
+import { MarketplaceIntegrationService } from '../../../marketplaceIntegration.service';
+import { MarketplaceIntegrationRepository } from '../../../repositories/marketplaceIntegrationRepository';
+import { AllegroApiClient } from '../allegro.apiClient';
+import { AllegroAuthorizationSchema, AllegroOAuthStateSchema } from '../allegro.schema';
 
 function sessionHash(sessionId: string) {
     return createHash('sha256').update(sessionId).digest('hex');

@@ -1,4 +1,5 @@
 import { AppError, ErrorNames } from '../../../../errors/errorHandler';
+import { throwPrestashopResponseError } from './prestashop.errors';
 import { PrestashopShopsSchema } from './prestashop.schema';
 
 export class PrestashopApiClient {
@@ -10,6 +11,7 @@ export class PrestashopApiClient {
 
         try {
             response = await fetch(url, {
+                method: 'GET',
                 headers: {
                     Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
                     Accept: 'application/json',
@@ -24,15 +26,7 @@ export class PrestashopApiClient {
             throw new AppError(ErrorNames.EXTERNAL_SERVICE_ERROR, 502, 'Nie udało się pobrać danych sklepu PrestaShop.');
         }
 
-        if (response.status === 401 || response.status === 403) {
-            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'PrestaShop odrzucił klucz API. Sprawdź klucz i uprawnienie GET do zasobu shops.');
-        }
-        if (response.status === 429) {
-            throw new AppError(ErrorNames.TOO_MANY_REQUESTS, 429, 'PrestaShop ograniczył liczbę zapytań. Spróbuj ponownie później.');
-        }
-        if (!response.ok) {
-            throw new AppError(ErrorNames.EXTERNAL_SERVICE_ERROR, 502, 'PrestaShop zwrócił błąd. Sprawdź adres API sklepu.');
-        }
+        if (!response.ok) throwPrestashopResponseError(response.status);
 
         const result = PrestashopShopsSchema.safeParse(body);
         if (!result.success) {

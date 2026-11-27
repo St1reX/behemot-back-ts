@@ -1,4 +1,5 @@
 import { AppError, ErrorNames } from '../../../../errors/errorHandler';
+import { throwErliResponseError } from './erli.errors';
 import { ErliShopSchema } from './erli.schema';
 
 export class ErliApiClient {
@@ -8,6 +9,7 @@ export class ErliApiClient {
 
         try {
             response = await fetch(new URL('me', baseUrl), {
+                method: 'GET',
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
@@ -24,15 +26,7 @@ export class ErliApiClient {
             throw new AppError(ErrorNames.EXTERNAL_SERVICE_ERROR, 502, 'Nie udało się pobrać danych konta z ERLI.');
         }
 
-        if (response.status === 401 || response.status === 403) {
-            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'ERLI odrzuciło token API. Sprawdź jego poprawność i uprawnienia.');
-        }
-        if (response.status === 429) {
-            throw new AppError(ErrorNames.TOO_MANY_REQUESTS, 429, 'ERLI ograniczyło liczbę zapytań. Spróbuj ponownie później.');
-        }
-        if (!response.ok) {
-            throw new AppError(ErrorNames.EXTERNAL_SERVICE_ERROR, 502, 'ERLI zwróciło błąd podczas pobierania danych konta.');
-        }
+        if (!response.ok) throwErliResponseError(response.status);
 
         const result = ErliShopSchema.safeParse(body);
         if (!result.success) {

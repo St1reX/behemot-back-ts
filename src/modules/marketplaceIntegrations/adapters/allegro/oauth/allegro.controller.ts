@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import { frontendUrl } from '../../../../config/env';
-import { appWinston } from '../../../../config/logger/appWinston';
-import { AppError, ErrorNames } from '../../../../errors/errorHandler';
-import { AllegroAuthorizationSchema, AllegroCallbackSchema } from './allegro.schema';
+import { frontendUrl } from '../../../../../config/env';
+import { appWinston } from '../../../../../config/logger/appWinston';
+import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
+import { AllegroAuthorizationSchema, AllegroCallbackSchema } from '../allegro.schema';
 import { AllegroOAuthService } from './allegroOAuth.service';
 
 export class AllegroController {

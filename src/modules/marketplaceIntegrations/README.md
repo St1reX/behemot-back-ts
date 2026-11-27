@@ -23,6 +23,13 @@ modules/
     ├── schemas/
     └── adapters/
         ├── allegro/
+        │   ├── allegro.adapter.ts
+        │   ├── allegro.apiClient.ts
+        │   ├── allegro.schema.ts
+        │   ├── allegro.errors.ts
+        │   └── oauth/
+        │       ├── allegro.controller.ts
+        │       └── allegroOAuth.service.ts
         ├── emag/
         ├── erli/
         └── prestashop/
@@ -33,14 +40,17 @@ modules/
 - `GET /marketplace-integrations` zwraca tablicę kont marketplace. `GET /bolma/configuration` zwraca bezpieczne dane konfiguracji Bolmy, a `GET /bolma/status` sprawdza jej połączenie. Nie ma wspólnego serwisu ani endpointu zestawiającego te moduły.
 - Serwis marketplace koordynuje operacje na kontach i zapis ich wyników.
 - Repozytorium marketplace odpowiada za dostęp do tabeli `MarketplaceIntegration`. Odczyt dla panelu jawnie wyklucza sekrety i surowe ustawienia. Login konta w `externalUsername` może być prezentowany w panelu.
-- Adapter waliduje konfigurację dostawcy i przygotowuje szyfrowane dane do zapisu. Docelowo odpowiada także za komunikację z dostawcą, mapowanie odpowiedzi i błędów. Nie obsługuje żądań Express ani zapisu przez Prisma.
+- Adapter koordynuje operacje dostawcy, mapuje dane konta i przygotowuje szyfrowaną konfigurację. Nie obsługuje żądań Express. Adapter Allegro korzysta z repozytorium przy odświeżaniu tokenów; pozostały zapis koordynuje serwis marketplace.
 - Bolma pozostaje niezależnym źródłem katalogu; nie implementuje kontraktu marketplace.
 
 ## Organizacja dostawców i kontrakt
 
 - Każdy dostawca ma własny folder `marketplaceIntegrations/adapters/<channel>/`. Jego implementacją wejściową jest `<channel>.adapter.ts`.
 - Klasa adaptera implementuje wspólny interfejs, np. `AllegroAdapter implements MarketplaceAdapter`. Wymagane metody wymusza `implements`; nie potrzebujemy dziedziczenia, metod wirtualnych ani wspólnej klasy abstrakcyjnej.
-- Kod autoryzacji, klienta API, schematów i mapowania danego dostawcy pozostaje w jego folderze. Wydzielaj kolejne pliki dopiero, gdy wymaga tego rzeczywista implementacja. Nie twórz obowiązkowego kompletu pustych serwisów i klientów dla każdego kanału.
+- W folderze dostawcy znajdują się `<channel>.adapter.ts`, `<channel>.apiClient.ts`, `<channel>.schema.ts` i `<channel>.errors.ts`. Allegro ma dodatkowo `oauth/` z kontrolerem i serwisem autoryzacji. Trasy pozostają w `marketplaceIntegrations/allegro.routes.ts`, ponieważ istniejący loader buduje adres endpointu na podstawie folderu pliku tras.
+- Każdy endpoint dostawcy ma osobną metodę klienta z jawnym `fetch`, metodą HTTP, URL-em, nagłówkami, parametrami i walidacją poprawnej odpowiedzi. Nie ma uniwersalnego `request()`, wspólnego klienta bazowego ani rozpoznawania operacji po URL-u.
+- `<channel>.errors.ts` obsługuje błędy HTTP konkretnego dostawcy. eMAG dodatkowo sprawdza `isError`, również przy HTTP 200. Klient waliduje schemat odpowiedzi przed sprawdzeniem tej flagi. Surowe odpowiedzi dostawców, nagłówki i wyjątki transportowe nie trafiają do błędów ani logów.
+- OAuth Allegro współdzieli wyłącznie wąskie `requestTokens()` ze stałym endpointem tokenów. Obsługuje tam `invalid_grant`, `invalid_client` i walidację tokenów. Błędy autoryzacji OAuth nie mają typu `AUTHORIZATION_ERROR`; ten typ oznacza wyłącznie HTTP 401 z API zasobów i uruchamia jedno ponowienie w `withAccessToken()`. Każdy `fetch` zachowuje timeout 10 sekund i `redirect: 'error'`.
 - Różnice konfiguracji w `settings` waliduj schematem Zod właściwym dla dostawcy. Nie traktuj tego pola jako dowolnego, nietypowanego worka danych.
 - Wspólna tabela `MarketplaceIntegration` przechowuje konta wszystkich kanałów. Dwa konta Allegro to dwa rekordy korzystające z tej samej klasy adaptera, z osobną konfiguracją i danymi dostępowymi.
 - `ProductExternalListing` przechowuje powiązania ofert z kontami. Nie twórz osobnych modeli kont i ofert dla każdego marketplace.
@@ -99,7 +109,7 @@ Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API a
 ## Konfiguracja eMAG
 
 - `POST /marketplace-integrations/EMAG` przyjmuje `{ "baseUrl": "https://marketplace-api.emag.ro/api-3/", "market": "RO", "username": "konto@example.com", "password": "..." }`. Rynek jest wymagany i może mieć wartość `RO`, `BG` albo `HU`. Jedno żądanie sprawdza i zapisuje jedną integrację, zwracając HTTP 201 z jej bezpiecznymi danymi. Pozostałe rynki dodaje się osobno.
-- eMAG ma trzy pliki: `emag.adapter.ts`, `emag.apiClient.ts`, `emag.schema.ts`. Adapter korzysta ze wspólnego serwisu i repozytorium. Wspólny kontrakt nie deklaruje listy rynków, nie wykonuje pętli i nie zwraca zbiorczych wyników.
+- eMAG ma cztery pliki: `emag.adapter.ts`, `emag.apiClient.ts`, `emag.schema.ts` i `emag.errors.ts`. Adapter korzysta ze wspólnego serwisu i repozytorium. Wspólny kontrakt nie deklaruje listy rynków, nie wykonuje pętli i nie zwraca zbiorczych wyników.
 - E-mail trafia do `externalUsername`, a hasło do `encryptedPassword`, szyfrowane z kontekstem `marketplace:<integrationId>:encryptedPassword`.
 - Sprawdzanie dostępu wykonuje `POST <baseUrl>product_offer/count` przez HTTP Basic, zawsze pod adresem API zapisanym na integracji. Wymagane są poprawny rynek, uprawnienia API i dozwolone IP serwera. Odpowiedź musi zawierać `isError: false`.
 - Nazwa konfiguracji zawiera rynek i e-mail, a `externalAccountId` pozostaje `null`, ponieważ API nie udostępnia profilu sprzedawcy.

@@ -3,7 +3,7 @@ import { requireAuth } from '../../middlewares/auth/requireAuth';
 import { requirePrivilege } from '../../middlewares/auth/requirePrivilege';
 import { ACTIONS } from '../../shared/constants/actions';
 import { ENTITIES } from '../../shared/constants/entities';
-import { AllegroController } from './adapters/allegro/allegro.controller';
+import { AllegroController } from './adapters/allegro/oauth/allegro.controller';
 
 const router = Router();
 
