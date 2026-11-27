@@ -54,7 +54,18 @@ src/
 |       `-- rateLimiter.ts
 |
 |-- modules/
-|   |-- bolma/
+|   |-- imports/
+|   |   |-- config/database.ts
+|   |   |-- docs/imports.docs.js
+|   |   |-- repositories/bolmaImportRepository.ts
+|   |   |-- schemas/imports.schema.ts
+|   |   |-- types/imports.types.ts
+|   |   |-- bolmaProduct.mapper.ts
+|   |   |-- bolmaImport.report.ts
+|   |   |-- imports.controller.ts
+|   |   |-- imports.routes.ts
+|   |   |-- imports.service.ts
+|   |   `-- README.md
 |   |-- marketplaceIntegrations/
 |   |-- health/
 |   |   `-- routes.ts

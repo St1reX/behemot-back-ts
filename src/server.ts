@@ -7,7 +7,7 @@ import { apiPort, apiUrl } from './config/env';
 import { redisClient } from './config/redis';
 import { closeSocketEventEmitter, createSocketServer } from './config/socket';
 import { setupGracefulShutdown } from './shared/utils/gracefulShutdown';
-import { closeBolmaDatabasePool } from './modules/bolma/config/database';
+import { closeBolmaDatabasePool } from './modules/imports/config/database';
 
 async function startServer() {
     await configureApp();

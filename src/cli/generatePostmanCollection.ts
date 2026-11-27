@@ -72,6 +72,9 @@ type PostmanCollection = {
 const routeRegex = /router\.(get|post|put|delete|patch)\(\s*['"`]([^'"`]+)['"`]/g;
 
 const requestBodies: Record<string, ModuleRequestBodies> = {
+    imports: {
+        'POST /imports/bolma/products': { confirmed: true },
+    },
     auth: {
         'POST /auth/login': {
             username: 'admin',

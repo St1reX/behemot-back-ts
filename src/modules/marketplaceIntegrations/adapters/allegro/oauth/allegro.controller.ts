@@ -24,7 +24,7 @@ export class AllegroController {
     }
 
     static async callback(req: Request, res: Response) {
-        const returnUrl = new URL(`${frontendUrl.replace(/\/+$/, '')}/integrations`);
+        const returnUrl = new URL(`${frontendUrl.replace(/\/+$/, '')}/integrations/marketplace`);
         res.setHeader('Cache-Control', 'no-store');
         res.setHeader('Referrer-Policy', 'no-referrer');
         try {

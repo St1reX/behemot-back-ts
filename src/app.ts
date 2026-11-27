@@ -37,6 +37,7 @@ app.use(
         origin: frontendUrl,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         credentials: true,
+        exposedHeaders: ['Content-Disposition'],
         preflightContinue: false,
         optionsSuccessStatus: 200,
     }),

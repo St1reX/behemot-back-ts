@@ -10,7 +10,7 @@ Ponowna weryfikacja i odświeżanie danych istniejących kont Allegro, ERLI, Pre
 
 ```text
 modules/
-├── bolma/                         # niezależne źródło katalogu MySQL
+├── imports/                       # import katalogu produktów, obecnie z MySQL Bolmy
 └── marketplaceIntegrations/
     ├── marketplaceIntegration.routes.ts
     ├── marketplaceIntegration.controller.ts
@@ -40,7 +40,7 @@ modules/
 
 ## Podział odpowiedzialności
 
-- `GET /marketplace-integrations` zwraca tablicę kont marketplace. `GET /bolma/configuration` zwraca bezpieczne dane konfiguracji Bolmy, a `GET /bolma/status` sprawdza jej połączenie. Nie ma wspólnego serwisu ani endpointu zestawiającego te moduły.
+- `GET /marketplace-integrations` zwraca tablicę kont marketplace. `GET /imports/bolma/configuration` zwraca bezpieczne dane konfiguracji Bolmy, a `GET /imports/bolma/status` sprawdza jej połączenie. Nie ma wspólnego serwisu ani endpointu zestawiającego te moduły.
 - Serwis marketplace koordynuje operacje na kontach i zapis ich wyników.
 - Repozytorium marketplace odpowiada za dostęp do tabeli `MarketplaceIntegration`. Odczyt dla panelu jawnie wyklucza sekrety i surowe ustawienia. Login konta w `externalUsername` może być prezentowany w panelu.
 - Adapter koordynuje operacje dostawcy, mapuje dane konta i przygotowuje szyfrowaną konfigurację. Nie obsługuje żądań Express. Serwis OAuth Allegro korzysta z repozytorium przy odświeżaniu tokenów; zapis kont koordynuje serwis marketplace. Kontroler OAuth po skonsumowaniu stanu zleca utworzenie lub ponowne połączenie konta serwisowi marketplace. Serwis OAuth nie importuje serwisu marketplace ani adapterów.
@@ -97,7 +97,7 @@ Nie dodawaj osobnych modeli Prisma dla każdego kanału, pustych klientów API a
 - Repozytorium zwraca wyłącznie jawną projekcję bez sekretów. Odpowiedź API i log audytowy nie zawierają tokenu ani jego szyfrogramu.
 - Frontend ma osobny formularz `components/erli/ErliConfigurationDialog.tsx`, korzystający ze wspólnych komponentów shadcn/ui. Formularze kolejnych dostawców mogą przyjmować inne dane; nie buduj jednego formularza z rosnącą liczbą warunkowych parametrów.
 - Uprawnienie `INTEGRATION:CREATE` jest częścią wspólnej konfiguracji uprawnień. Nie dodajemy osobnej migracji danych dla jego przypisania; obowiązuje istniejący mechanizm seedowania i zarządzania rolami.
-- Klienci HTTP frontendu są rozdzieleni: `src/api/marketplaceIntegrations/MarketplaceIntegrationApiClient.ts` odpowiada za odczyt kont marketplace, sprawdzanie połączenia i usuwanie, `erli/ErliApiClient.ts` za operacje ERLI, `prestashop/PrestashopApiClient.ts` za operacje PrestaShop, a `src/api/bolma/BolmaApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
+- Klienci HTTP frontendu są rozdzieleni: `src/api/marketplaceIntegrations/MarketplaceIntegrationApiClient.ts` odpowiada za odczyt kont marketplace, sprawdzanie połączenia i usuwanie, `erli/ErliApiClient.ts` za operacje ERLI, `prestashop/PrestashopApiClient.ts` za operacje PrestaShop, a `src/api/imports/ImportsApiClient.ts` za operacje Bolmy. Kolejnych dostawców dodawaj w osobnych podfolderach.
 
 ## Konfiguracja PrestaShop
 
