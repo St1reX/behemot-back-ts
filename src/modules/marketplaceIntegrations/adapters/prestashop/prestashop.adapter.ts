@@ -20,6 +20,17 @@ export class PrestashopAdapter implements MarketplaceAdapter {
     }
 
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        const { baseUrl, apiKey } = this.ensureConnectionConfiguration(context);
+        const shop = await PrestashopApiClient.getFirstShop(baseUrl, apiKey);
+        return {
+            name: shop.name,
+            externalAccountId: shop.id,
+            externalUsername: shop.name,
+            settings: { shopActive: shop.active, shopGroupId: shop.id_shop_group },
+        };
+    }
+
+    private ensureConnectionConfiguration(context: MarketplaceConnectionContext) {
         if (!context.apiKey) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma zapisanego klucza API PrestaShop.');
         }
@@ -27,12 +38,6 @@ export class PrestashopAdapter implements MarketplaceAdapter {
         if (!parsedUrl.success) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma poprawnego adresu HTTPS sklepu PrestaShop.');
         }
-        const shop = await PrestashopApiClient.getFirstShop(parsedUrl.data, context.apiKey);
-        return {
-            name: shop.name,
-            externalAccountId: shop.id,
-            externalUsername: shop.name,
-            settings: { shopActive: shop.active, shopGroupId: shop.id_shop_group },
-        };
+        return { baseUrl: parsedUrl.data, apiKey: context.apiKey };
     }
 }

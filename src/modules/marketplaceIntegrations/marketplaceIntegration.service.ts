@@ -7,14 +7,12 @@ import { createMarketplaceAdapter } from './marketplaceAdapter.factory';
 import { MarketplaceIntegrationRepository } from './repositories/marketplaceIntegrationRepository';
 import { AppError, ErrorNames } from '../../errors/errorHandler';
 import { decryptSecret } from '../../shared/utils/secretEncryption';
-import { MarketplaceAccountData } from './types/marketplaceAdapter.types';
+import { MarketplaceAccountData, PreparedMarketplaceConfiguration } from './types/marketplaceAdapter.types';
 
 export class MarketplaceIntegrationService {
     static async checkConnection(integrationId: string) {
         const storedIntegration = await MarketplaceIntegrationRepository.findForConnectionCheck(integrationId);
-        if (!storedIntegration) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
-        }
+        this.ensureIntegrationExists(storedIntegration);
 
         const { encryptedApiKey, encryptedPassword, ...integrationBefore } = storedIntegration;
         const adapter = createMarketplaceAdapter(storedIntegration.channel);
@@ -75,9 +73,7 @@ export class MarketplaceIntegrationService {
         const id = randomUUID();
         const configuration = await adapter.prepareConfiguration(input, id);
 
-        if (await MarketplaceIntegrationRepository.findExisting(configuration)) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Ta integracja jest już dodana.');
-        }
+        await this.ensureIntegrationIsAvailable(configuration);
 
         const integration = await MarketplaceIntegrationRepository.create(id, configuration);
         await createAuditLog({
@@ -94,14 +90,10 @@ export class MarketplaceIntegrationService {
 
     static async reconnectIntegration(integrationId: string, channel: MarketplaceIntegrationChannel, input: unknown) {
         const previous = await MarketplaceIntegrationRepository.findById(integrationId);
-        if (!previous || previous.channel !== channel) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
-        }
+        this.ensureIntegrationExists(previous, channel);
 
         const configuration = await createMarketplaceAdapter(channel).prepareConfiguration(input, integrationId);
-        if (configuration.externalAccountId !== previous.externalAccountId) {
-            throw new AppError(ErrorNames.CONFLICT, 409, 'Zaloguj się do tego samego konta, które jest przypisane do integracji.');
-        }
+        this.ensureExternalAccountMatches(configuration.externalAccountId, previous.externalAccountId);
         const integration = await MarketplaceIntegrationRepository.updateConfiguration(integrationId, configuration);
         await createAuditLog({
             entityName: ENTITIES.INTEGRATION,
@@ -117,9 +109,7 @@ export class MarketplaceIntegrationService {
 
     static async deleteIntegration(integrationId: string) {
         const integration = await MarketplaceIntegrationRepository.findById(integrationId);
-        if (!integration) {
-            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
-        }
+        this.ensureIntegrationExists(integration);
 
         await MarketplaceIntegrationRepository.softDelete(integrationId);
         await createAuditLog({
@@ -132,5 +122,26 @@ export class MarketplaceIntegrationService {
         });
 
         return { message: 'Integracja i powiązane oferty zostały usunięte.' };
+    }
+
+    private static ensureIntegrationExists<T extends { channel: MarketplaceIntegrationChannel }>(
+        integration: T | null,
+        channel?: MarketplaceIntegrationChannel,
+    ): asserts integration is T {
+        if (!integration || (channel !== undefined && integration.channel !== channel)) {
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji.');
+        }
+    }
+
+    private static async ensureIntegrationIsAvailable(configuration: PreparedMarketplaceConfiguration) {
+        if (await MarketplaceIntegrationRepository.findExisting(configuration)) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Ta integracja jest już dodana.');
+        }
+    }
+
+    private static ensureExternalAccountMatches(externalAccountId: string | null, previousExternalAccountId: string | null) {
+        if (externalAccountId !== previousExternalAccountId) {
+            throw new AppError(ErrorNames.CONFLICT, 409, 'Zaloguj się do tego samego konta, które jest przypisane do integracji.');
+        }
     }
 }

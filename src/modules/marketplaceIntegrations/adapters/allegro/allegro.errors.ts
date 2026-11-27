@@ -3,7 +3,6 @@ import { AppError, ErrorNames } from '../../../../errors/errorHandler';
 export function throwAllegroError(error: unknown): never {
     if (error instanceof AppError) throw error;
 
-    // Never expose transport errors, provider bodies or validation details containing response data.
     throwAllegroResponseError();
 }
 

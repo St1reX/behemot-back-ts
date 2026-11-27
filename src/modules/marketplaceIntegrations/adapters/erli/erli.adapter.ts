@@ -22,6 +22,18 @@ export class ErliAdapter implements MarketplaceAdapter {
     }
 
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        const { baseUrl, apiKey } = this.ensureConnectionConfiguration(context);
+        const shop = await ErliApiClient.getShop(baseUrl, apiKey);
+
+        return {
+            name: shop.name,
+            externalAccountId: String(shop.id),
+            externalUsername: shop.name,
+            settings: { shopActive: shop.active, scopes: shop.scopes, markets: shop.markets },
+        };
+    }
+
+    private ensureConnectionConfiguration(context: MarketplaceConnectionContext) {
         if (!context.apiKey) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma zapisanego tokenu API ERLI.');
         }
@@ -32,13 +44,6 @@ export class ErliAdapter implements MarketplaceAdapter {
         if (!parsedUrl.success) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja nie ma poprawnego adresu API ERLI.');
         }
-        const shop = await ErliApiClient.getShop(parsedUrl.data, context.apiKey);
-
-        return {
-            name: shop.name,
-            externalAccountId: String(shop.id),
-            externalUsername: shop.name,
-            settings: { shopActive: shop.active, scopes: shop.scopes, markets: shop.markets },
-        };
+        return { baseUrl: parsedUrl.data, apiKey: context.apiKey };
     }
 }

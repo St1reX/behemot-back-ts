@@ -21,6 +21,14 @@ export class EmagAdapter implements MarketplaceAdapter {
     }
 
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
+        const { baseUrl, market, username, password } = this.ensureConnectionConfiguration(context);
+        await EmagApiClient.checkConnection(baseUrl, username, password);
+
+        // The public API has no seller-profile endpoint. Do not fabricate a remote seller ID.
+        return { name: `eMAG ${market} — ${username}`, externalAccountId: null, externalUsername: username, settings: {} };
+    }
+
+    private ensureConnectionConfiguration(context: MarketplaceConnectionContext) {
         if (context.environment !== IntegrationEnvironment.PRODUCTION) {
             throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Środowisko testowe eMAG nie jest jeszcze obsługiwane.');
         }
@@ -33,10 +41,6 @@ export class EmagAdapter implements MarketplaceAdapter {
         if (!parsed.success) {
             throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja eMAG nie ma poprawnego adresu API, rynku, e-maila lub hasła.');
         }
-        const { baseUrl, market, username, password } = parsed.data;
-        await EmagApiClient.checkConnection(baseUrl, username, password);
-
-        // The public API has no seller-profile endpoint. Do not fabricate a remote seller ID.
-        return { name: `eMAG ${market} — ${username}`, externalAccountId: null, externalUsername: username, settings: {} };
+        return parsed.data;
     }
 }
