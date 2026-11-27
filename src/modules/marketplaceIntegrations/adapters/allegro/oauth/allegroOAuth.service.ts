@@ -3,10 +3,11 @@ import { apiPort, apiUrl, isDevelopment } from '../../../../../config/env';
 import { redisClient } from '../../../../../config/redis';
 import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
 import { decryptSecret, encryptSecret } from '../../../../../shared/utils/secretEncryption';
-import { MarketplaceIntegrationService } from '../../../marketplaceIntegration.service';
 import { MarketplaceIntegrationRepository } from '../../../repositories/marketplaceIntegrationRepository';
 import { AllegroOAuthApiClient } from './allegroOAuth.apiClient';
 import { AllegroAuthorizationSchema, AllegroOAuthStateSchema } from '../allegro.schema';
+import { ApiBaseUrlSchema } from '../../../schemas/apiBaseUrl.schema';
+import type { AllegroTokenIntegration } from './allegroOAuth.types';
 
 function sessionHash(sessionId: string) {
     return createHash('sha256').update(sessionId).digest('hex');
@@ -55,10 +56,66 @@ export class AllegroOAuthService {
         return payload;
     }
 
-    static complete(configuration: { baseUrl: string; integrationId?: string; clientId: string; clientSecret: string; redirectUri: string }, code: string) {
-        const input = { baseUrl: configuration.baseUrl, clientId: configuration.clientId, clientSecret: configuration.clientSecret, redirectUri: configuration.redirectUri, code };
-        return configuration.integrationId
-            ? MarketplaceIntegrationService.reconnectIntegration(configuration.integrationId, 'ALLEGRO', input)
-            : MarketplaceIntegrationService.createIntegration('ALLEGRO', input);
+    static async withAccessToken<T>(integrationId: string, operation: (baseUrl: string, accessToken: string) => Promise<T>): Promise<T> {
+        let authorization = await this.getAccessToken(integrationId);
+        try {
+            return await operation(authorization.baseUrl, authorization.accessToken);
+        } catch (error) {
+            if (!(error instanceof AppError) || error.name !== ErrorNames.AUTHORIZATION_ERROR) throw error;
+        }
+        authorization = await this.getAccessToken(integrationId, authorization.accessToken);
+        return operation(authorization.baseUrl, authorization.accessToken);
+    }
+
+    private static getAccessToken(integrationId: string, rejectedToken?: string) {
+        return MarketplaceIntegrationRepository.withTokenRefreshLock(integrationId, async (tx) => {
+            const integration = this.ensureConnectionConfiguration(
+                await MarketplaceIntegrationRepository.findForTokenRefresh(integrationId, tx),
+            );
+            const accessToken = integration.encryptedAccessToken
+                ? decryptSecret(integration.encryptedAccessToken, `marketplace:${integrationId}:encryptedAccessToken`)
+                : undefined;
+            const expiresAt = integration.accessTokenExpiresAt?.getTime() ?? 0;
+            if (accessToken && expiresAt > Date.now() + 60_000 && accessToken !== rejectedToken) {
+                return { baseUrl: integration.baseUrl, accessToken };
+            }
+            const credentials = this.ensureRefreshCredentials(integration);
+            const clientId = decryptSecret(credentials.encryptedApiKey, `marketplace:${integrationId}:encryptedApiKey`);
+            const clientSecret = decryptSecret(credentials.encryptedPassword, `marketplace:${integrationId}:encryptedPassword`);
+            const refreshToken = decryptSecret(credentials.encryptedRefreshToken, `marketplace:${integrationId}:encryptedRefreshToken`);
+            const issuedAt = Date.now();
+            const tokens = await AllegroOAuthApiClient.refreshTokens(refreshToken, clientId, clientSecret);
+            await MarketplaceIntegrationRepository.updateTokens(integrationId, {
+                encryptedAccessToken: encryptSecret(tokens.access_token, `marketplace:${integrationId}:encryptedAccessToken`),
+                encryptedRefreshToken: encryptSecret(tokens.refresh_token, `marketplace:${integrationId}:encryptedRefreshToken`),
+                accessTokenExpiresAt: new Date(issuedAt + tokens.expires_in * 1000),
+            }, tx);
+            return { baseUrl: integration.baseUrl, accessToken: tokens.access_token };
+        });
+    }
+
+    private static ensureConnectionConfiguration(integration: AllegroTokenIntegration | null) {
+        if (!integration || integration.channel !== 'ALLEGRO') {
+            throw new AppError(ErrorNames.RESOURCE_NOT_FOUND, 404, 'Nie znaleziono integracji Allegro.');
+        }
+        if (integration.environment !== 'PRODUCTION') {
+            throw new AppError(ErrorNames.BAD_REQUEST, 400, 'Środowisko testowe Allegro nie jest jeszcze obsługiwane.');
+        }
+        const baseUrl = ApiBaseUrlSchema.safeParse(integration.baseUrl);
+        if (!baseUrl.success) {
+            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja Allegro nie ma poprawnego adresu API.');
+        }
+        return { ...integration, baseUrl: baseUrl.data };
+    }
+
+    private static ensureRefreshCredentials(integration: AllegroTokenIntegration) {
+        if (!integration.encryptedApiKey || !integration.encryptedPassword || !integration.encryptedRefreshToken) {
+            throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Integracja Allegro nie ma danych potrzebnych do odświeżenia tokenu. Połącz konto ponownie.');
+        }
+        return {
+            encryptedApiKey: integration.encryptedApiKey,
+            encryptedPassword: integration.encryptedPassword,
+            encryptedRefreshToken: integration.encryptedRefreshToken,
+        };
     }
 }

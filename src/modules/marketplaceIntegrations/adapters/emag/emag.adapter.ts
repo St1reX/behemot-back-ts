@@ -23,8 +23,6 @@ export class EmagAdapter implements MarketplaceAdapter {
     async checkConnection(context: MarketplaceConnectionContext): Promise<MarketplaceAccountData> {
         const { baseUrl, market, username, password } = this.ensureConnectionConfiguration(context);
         await EmagApiClient.checkConnection(baseUrl, username, password);
-
-        // The public API has no seller-profile endpoint. Do not fabricate a remote seller ID.
         return { name: `eMAG ${market} — ${username}`, externalAccountId: null, externalUsername: username, settings: {} };
     }
 

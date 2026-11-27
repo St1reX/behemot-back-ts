@@ -14,8 +14,6 @@ export const AllegroCallbackSchema = z.object({
     code: z.string().min(1).max(4096).optional(),
     error: z.string().max(255).optional(),
 });
-
-// Internal input, accepted only after consuming the session-bound OAuth state.
 export const AllegroConfigurationSchema = AllegroAuthorizationSchema.omit({ integrationId: true }).extend({
     code: z.string().min(1).max(4096),
     redirectUri: z.string().url().max(2048),

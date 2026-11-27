@@ -4,6 +4,7 @@ import { appWinston } from '../../../../../config/logger/appWinston';
 import { AppError, ErrorNames } from '../../../../../errors/errorHandler';
 import { AllegroAuthorizationSchema, AllegroCallbackSchema } from '../allegro.schema';
 import { AllegroOAuthService } from './allegroOAuth.service';
+import { MarketplaceIntegrationService } from '../../../marketplaceIntegration.service';
 
 export class AllegroController {
     static configuration(_req: Request, res: Response) {
@@ -38,7 +39,18 @@ export class AllegroController {
                 if (!query.code) {
                     throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Allegro nie przekazało kodu autoryzacji. Rozpocznij łączenie ponownie.');
                 }
-                await AllegroOAuthService.complete(configuration, query.code);
+                const input = {
+                    baseUrl: configuration.baseUrl,
+                    clientId: configuration.clientId,
+                    clientSecret: configuration.clientSecret,
+                    redirectUri: configuration.redirectUri,
+                    code: query.code,
+                };
+                if (configuration.integrationId) {
+                    await MarketplaceIntegrationService.reconnectIntegration(configuration.integrationId, 'ALLEGRO', input);
+                } else {
+                    await MarketplaceIntegrationService.createIntegration('ALLEGRO', input);
+                }
                 returnUrl.searchParams.set('allegro', 'connected');
             }
         } catch (error) {

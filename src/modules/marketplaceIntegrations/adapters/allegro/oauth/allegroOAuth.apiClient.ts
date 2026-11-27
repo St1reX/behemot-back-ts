@@ -52,7 +52,6 @@ export class AllegroOAuthApiClient {
         }
 
         if (!response.ok) {
-            // OAuth failures must not trigger the adapter's retry for resource API 401s.
             const oauthError = AllegroOAuthErrorSchema.safeParse(responseBody);
             if (oauthError.success && oauthError.data.error === 'invalid_grant') {
                 throw new AppError(ErrorNames.VALIDATION_ERROR, 422, 'Allegro odrzuciło kod lub token odświeżania. Połącz konto ponownie.');
