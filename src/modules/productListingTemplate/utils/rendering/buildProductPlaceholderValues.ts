@@ -1,4 +1,5 @@
-import { PRODUCT_SIDE_LABELS, PRODUCT_SIDE_TITLE_LABELS, ProductSide } from '../../../../shared/constants/productSides';
+import type { ProductSide } from '@prisma/client';
+import { PRODUCT_SIDE_LABELS, PRODUCT_SIDE_TITLE_LABELS } from '../../../../shared/constants/productSides';
 import { formatCarGeneration } from './formatCarGeneration';
 
 interface ProductPlaceholderData {

@@ -2,13 +2,12 @@ import { OperationStatus } from '@prisma/client';
 import { z } from 'zod';
 import { IdParamsSchema } from '../../../shared/schema/commonSchema';
 import { ENTITIES, Entity } from '../../../shared/constants/entities';
+import { ACTIONS } from '../../../shared/constants/actions';
+import { PaginatedListQuerySchema } from '../../../shared/schema/pagination.schema';
 
-export const AuditLogQuerySchema = z.object({
-    page: z.coerce.number().int().min(1).max(100000).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(25),
-    search: z.string().trim().max(100).optional(),
+export const AuditLogQuerySchema = PaginatedListQuerySchema.extend({
     entityName: z.enum(Object.values(ENTITIES) as [Entity, ...Entity[]]).optional(),
-    action: z.enum(['CREATE', 'UPDATE', 'DELETE', 'READ']).optional(),
+    action: z.nativeEnum(ACTIONS).optional(),
     operationStatus: z.nativeEnum(OperationStatus).optional(),
     from: z.string().datetime({ offset: true }).optional(),
     to: z.string().datetime({ offset: true }).optional(),

@@ -1,4 +1,4 @@
-import { IntegrationSyncStatus } from '../../../shared/constants/integrationSyncStatuses';
+import type { IntegrationSyncStatus } from '@prisma/client';
 
 export const PRODUCT_SOCKET_EVENTS = {
     LISTING_SYNC_STATUS_CHANGED: 'product-listing-sync-status-changed',

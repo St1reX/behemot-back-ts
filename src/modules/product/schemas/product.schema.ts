@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { IdParamsSchema, UuidSchema } from '../../../shared/schema/commonSchema';
-import { PRODUCT_SIDES } from '../../../shared/constants/productSides';
+import { ProductSide } from '@prisma/client';
 import { ProductFitmentFieldsSchema } from '../../productFitment/schemas/productFitment.schema';
 
 const decimalSchema = z.number().nonnegative().max(9999.99).multipleOf(0.01);
@@ -17,7 +17,7 @@ export const CreateProductSchema = z.object({
     customSummary: z.string().nullable().optional(),
     customDescription: z.string().nullable().optional(),
     internalNote: z.string().nullable(),
-    side: z.nativeEnum(PRODUCT_SIDES),
+    side: z.nativeEnum(ProductSide),
     weight: dimensionSchema,
     length: dimensionSchema,
     width: dimensionSchema,
@@ -70,7 +70,7 @@ export const UpdateProductRequestSchema = CreateProductRequestSchema;
 export const ImportProductSchema = CreateProductSchema.extend({
     price: decimalSchema.nullable().default(null),
     quantity: z.number().int().nonnegative().nullable().default(null),
-    side: z.nativeEnum(PRODUCT_SIDES).nullable().default(null),
+    side: z.nativeEnum(ProductSide).nullable().default(null),
     weight: dimensionSchema.nullable().default(null),
     length: dimensionSchema.nullable().default(null),
     width: dimensionSchema.nullable().default(null),

@@ -1,5 +1,4 @@
-import { MarketplaceIntegrationChannel, IntegrationSyncStatus, Prisma } from '@prisma/client';
-import { ProductSide } from '../../../shared/constants/productSides';
+import type { MarketplaceIntegrationChannel, IntegrationSyncStatus, ProductSide, Prisma } from '@prisma/client';
 
 export interface ProductResponse {
     id: string;
